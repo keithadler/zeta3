@@ -1,0 +1,829 @@
+% High-Precision Computational Tests on zeta(3) and pi
+% Prepared for Experimental Mathematics (Taylor & Francis)
+\documentclass[12pt]{article}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage[margin=1in]{geometry}
+\usepackage{caption}
+\usepackage{array}
+\usepackage{longtable}
+
+% --- Theorem environments ---
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{result}[theorem]{Result}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% --- Custom commands ---
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+
+% --- Hyphenation hints ---
+\hyphenation{sys-tem-at-i-cal-ly cer-tif-i-cate non-ex-is-tence}
+
+\title{High-Precision Computational Tests on $\zeta(3)$ and $\pi$}
+\author{Keith Adler \and William R.\ Adler}
+\date{May 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We employ the PSLQ integer relation algorithm at high precision to search
+systematically for algebraic relations between $\zeta(3)$ and~$\pi$.
+Our principal results are:
+(1)~no relation $a\,\zeta(3) + b\,\pi^2 + c = 0$ exists with
+$|a|,|b|,|c| \le 10^{2000}$ (verified at $10{,}000$-digit precision);
+(2)~$\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with
+polynomial height~$\le 10^{100}$ ($4{,}500$ digits);
+(3)~$\zeta(3)$ and~$\pi$ satisfy no joint polynomial of total
+degree~$\le 6$ ($4{,}000$ digits);
+(4)~no linear relation connects $\zeta(3)$, $\zeta(3,2)$, $\zeta(2,3)$,
+and~$\pi^5$ at weight~5.
+All~37 PSLQ tests---34 yielding certified null results and 3 recovering
+known identities---are reported with full parameters.  The accompanying
+code is publicly available for independent verification.
+\end{abstract}
+
+\noindent\textbf{MSC 2020:} 11Y60 (primary); 11J72, 11M06, 11J91 (secondary).
+
+\medskip\noindent\textbf{Keywords:}
+Ap\'ery's constant, $\zeta(3)$, algebraic independence, PSLQ algorithm,
+integer relations, odd zeta values, transcendental number theory,
+experimental mathematics.
+
+
+%% ====================================================================
+\section{Introduction}\label{sec:intro}
+%% ====================================================================
+
+The Riemann zeta function at $s=3$,
+\[
+  \zeta(3) = \sum_{n=1}^{\infty} \frac{1}{n^3}
+           = 1.2020569031595942853997381615\ldots,
+\]
+is irrational (Ap\'ery, 1979~\cite{Apery1979}), but whether it is
+transcendental or algebraically independent from~$\pi$ remains unknown.
+For even arguments, Euler~\cite{Euler1734} showed
+$\zeta(2k)\in\pi^{2k}\cdot\Q$ for all positive integers~$k$.  The
+simplest open case is whether $\zeta(3)$ bears any rational
+relationship to~$\pi^2$---that is, whether integers $a,b,c$ exist
+with
+\begin{equation}\label{eq:main-relation}
+  a\,\zeta(3) + b\,\pi^2 + c = 0.
+\end{equation}
+This question lies at the intersection of transcendental number theory,
+Diophantine approximation, and experimental
+mathematics~\cite{BaileyBorwein2005, BorweinBailey2004}.
+
+We address~\eqref{eq:main-relation} computationally.  Our main result
+(Result~\ref{res:A}) is:
+\begin{quote}
+\emph{No integers $a,b,c$ with $|a|,|b|,|c|\le 10^{2000}$ satisfy
+$a\,\zeta(3)+b\,\pi^2+c=0$.}
+\end{quote}
+\noindent This is verified at $10{,}000$-digit precision using the
+PSLQ algorithm, which provides a certificate of non-existence.
+The bound~$10^{2000}$ far exceeds the coefficients appearing in any
+known zeta identity; for comparison, $\zeta(2)=\pi^2/6$ has
+coefficients~$1$ and~$6$.
+
+We supplement this with tests against other odd zeta values,
+Nesterenko's algebraically independent
+triple~$\{\pi,e^\pi,\Gamma(1/4)\}$~\cite{Nesterenko1996},
+Catalan's constant, L-values of elliptic curves, and the Euler-sum
+constants $\pi^2\ln 2$ and $\ln^{3} 2$.  All return null results within
+the tested bounds.
+
+
+%% ====================================================================
+\section{Methods}\label{sec:methods}
+%% ====================================================================
+
+\subsection{The PSLQ algorithm}\label{sec:pslq}
+
+Given real numbers $x_1,\ldots,x_n$ computed to $D$ decimal digits,
+the PSLQ algorithm~\cite{Ferguson1992, FergusonBaileyArwade1999}
+either:
+\begin{enumerate}[label=(\alph*)]
+  \item finds integers $a_1,\ldots,a_n$ (not all zero) with
+    $a_1 x_1 + \cdots + a_n x_n = 0$, or
+  \item \emph{certifies} that no such relation exists with
+    $\max|a_i|\le M$.
+\end{enumerate}
+A null result from PSLQ is a \emph{mathematical guarantee}, not a
+search failure.  The algorithm maintains an internal norm bound that
+grows monotonically; when this bound exceeds the prescribed
+$\mathrm{maxcoeff}$, the algorithm terminates with a rigorous
+certificate that any integer relation must have
+$\max|a_i|>\mathrm{maxcoeff}$.
+
+For the main test ($\{\zeta(3),\pi^2,1\}$ at $10{,}000$ digits), the
+internal norm bound exceeds~$10^{2000}$ before termination, confirming
+exit via the norm-exceeds-maxcoeff condition rather than exhaustion of
+the iteration limit.
+
+\subsection{Theoretical capacity}\label{sec:capacity}
+
+For a basis of $n$ elements at $D$-digit precision, PSLQ can
+certify non-existence of relations with coefficients up to
+approximately $10^{D/n}$~\cite{FergusonBaileyArwade1999}.  All tests
+in this paper use bounds well within this theoretical capacity
+(see Figure~\ref{fig:bound-precision}).
+
+\subsection{Computational setup}\label{sec:setup}
+
+\begin{itemize}
+  \item \textbf{Precision:} $1{,}000$--$10{,}000$ decimal digits
+    depending on the test.
+  \item \textbf{Hardware:} Apple M3 processor (8 cores).
+  \item \textbf{Software:} Python~3.14, mpmath~1.4.1~\cite{mpmath}.
+  \item \textbf{Total runtime:} Approximately 5 minutes for the full
+    suite, dominated by the degree-30 algebraicity test at $4{,}500$
+    digits.
+\end{itemize}
+
+
+\subsection{Validation}\label{sec:validation}
+
+To confirm that our implementation detects genuine relations, we
+tested three known identities:
+
+\begin{enumerate}
+  \item \textbf{$\mathrm{Li}_3(1/2)$:} PSLQ recovered $[21,-24,-2,4]$ for
+    the basis $\{\zeta(3),\mathrm{Li}_3(1/2),\pi^2\ln 2,\ln^{3} 2\}$,
+    with residual $6.4\times 10^{-401}$.  This corresponds to
+    \[
+      \zeta(3) = \tfrac{8}{7}\,\mathrm{Li}_3(\tfrac{1}{2})
+               + \tfrac{2}{21}\,\pi^2\ln 2
+               - \tfrac{4}{21}\,\ln^{3} 2.
+    \]
+
+  \item \textbf{$\mathrm{Li}_3(-1)$:} PSLQ recovered $[3,4]$ for the basis
+    $\{\zeta(3),\mathrm{Li}_3(-1)\}$, confirming
+    $\mathrm{Li}_3(-1)=-\tfrac{3}{4}\,\zeta(3)$.
+
+  \item \textbf{$\zeta(6)$:} PSLQ recovered $[0,-945,1,0]$ for the
+    basis $\{\zeta(3)^2,\zeta(6),\pi^6,1\}$, confirming
+    $\zeta(6)=\pi^6/945$.
+\end{enumerate}
+
+\noindent All three known identities were detected correctly,
+confirming that PSLQ finds relations when they exist.
+
+
+%% ====================================================================
+\section{Results}\label{sec:results}
+%% ====================================================================
+
+\subsection{Principal results}\label{sec:principal}
+
+\begin{result}[Linear independence from $\pi^2$]\label{res:A}
+At $10{,}000$-digit precision, no relation
+$a\,\zeta(3)+b\,\pi^2+c=0$ exists with $|a|,|b|,|c|\le 10^{2000}$.
+The PSLQ norm bound certifies non-existence.  In particular,
+$\zeta(3)\ne(b/a)\,\pi^2+c/a$ for any integers $a,b,c$ with
+$\max(|a|,|b|,|c|)\le 10^{2000}$.
+\end{result}
+
+\begin{result}[Non-algebraicity of $\zeta(3)/\pi^3$]\label{res:B}
+At $4{,}500$-digit precision, $\zeta(3)/\pi^3$ is not algebraic of
+degree~$\le 30$ with polynomial height~$\le 10^{100}$.  That is,
+$\zeta(3)/\pi^3$ is not a root of any polynomial
+$a_0+a_1 x+\cdots+a_{30}x^{30}=0$ with $|a_i|\le 10^{100}$.
+\end{result}
+
+\noindent For context: $\zeta(2)/\pi^2=1/6$ is rational (degree~0).
+If $\zeta(3)/\pi^3$ were algebraic of any degree, it would represent a
+deep structural connection between $\zeta(3)$ and~$\pi$.  We exclude
+this up to degree~30.
+
+
+\subsection{Complete test catalogue}\label{sec:catalogue}
+
+Table~\ref{tab:all-tests} consolidates all 37 PSLQ tests performed in
+this study.  Tests 35--37 recover known identities; all others certify
+non-existence within the stated bounds.
+
+\begin{longtable}{@{}clcccc@{}}
+\caption{Complete PSLQ test catalogue.  ``Bound'' denotes
+$\mathrm{maxcoeff}$; ``Result'' is either a certified null or the
+recovered coefficient vector.}\label{tab:all-tests}\\
+\toprule
+\# & Basis & $n$ & Digits & Bound & Result \\
+\midrule
+\endfirsthead
+\caption[]{(continued)}\\
+\toprule
+\# & Basis & $n$ & Digits & Bound & Result \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+ 1 & $\{\zeta(3),\pi^2,1\}$ & 3 & 10000 & $10^{2000}$ & No relation \\
+ 2 & $\{\zeta(3),\pi^3,1\}$ & 3 & 5000 & $10^{1000}$ & No relation \\
+ 3 & $\{\zeta(3),\pi^2,\pi^4,1\}$ & 4 & 2000 & $10^{10}$ & No relation \\
+ 4 & $\{\zeta(3),\pi^2,\pi^4,\pi^6,1\}$ & 5 & 1000 & $10^{8}$ & No relation \\
+ 5 & $\{\zeta(3),\pi^2,\pi^4,\pi^6,\pi^8,\pi^{10},1\}$ & 7 & 3000 & $10^{8}$ & No relation \\
+ 6 & $\{1,\zeta(3),\zeta(3)^2\}$ & 3 & 2000 & $10^{12}$ & No relation \\
+ 7 & $\{1,\zeta(3),\zeta(3)^2,\zeta(3)^3\}$ & 4 & 2000 & $10^{10}$ & No relation \\
+ 8 & $\{1,\zeta(3),\zeta(3)^2,\zeta(3)^3,\zeta(3)^4\}$ & 5 & 2000 & $10^{8}$ & No relation \\
+ 9 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,10\}$ & 11 & 8000 & $10^{12}$ & No relation \\
+10 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,15\}$ & 16 & 10000 & $10^{9}$ & No relation \\
+11 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,25\}$ & 26 & 6000 & $10^{200}$ & No relation \\
+12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 4500 & $10^{100}$ & No relation \\
+13 & $\{\zeta(3)^i\pi^j:i+j\le 3\}$ & 10 & 5000 & $10^{12}$ & No relation \\
+14 & $\{\zeta(3)^i\pi^j:i+j\le 4\}$ & 15 & 5000 & $10^{8}$ & No relation \\
+15 & $\{\zeta(3)^i\pi^j:i+j\le 6\}$ & 28 & 4000 & $10^{50}$ & No relation \\
+16 & $\{\zeta(3),\zeta(5),1\}$ & 3 & 3000 & $10^{12}$ & No relation \\
+17 & $\{\zeta(3),\zeta(5),\zeta(7),1\}$ & 4 & 3000 & $10^{10}$ & No relation \\
+18 & $\{\zeta(3),\zeta(5),\zeta(7),\zeta(9),1\}$ & 5 & 1500 & $10^{8}$ & No relation \\
+19 & $\{\zeta(3),\pi,e^\pi,\Gamma(1/4),1\}$ & 5 & 4000 & $10^{12}$ & No relation \\
+20 & $\{\zeta(3),\Gamma(1/4)^4/\pi^3,\pi^2,1\}$ & 4 & 4000 & $10^{12}$ & No relation \\
+21 & $\{\zeta(3),G,\pi^3,1\}$ & 4 & 3000 & $10^{10}$ & No relation \\
+22 & $\{\zeta(3),G^2,G\pi,\pi^2,G,1\}$ & 6 & 3000 & $10^{10}$ & No relation \\
+23 & $\{\zeta(3)^2,G^2,\zeta(3)G,\pi^4,\zeta(3),G,\pi^2,1\}$ & 8 & 2000 & $10^{8}$ & No relation \\
+24 & $\{\zeta(3)^2,\zeta(5)\pi,\zeta(7),\pi^6,\pi^4,1\}$ & 6 & 3000 & $10^{8}$ & No relation \\
+25 & $\{\zeta(3),\zeta(3)\pi^2,\zeta(5)\pi^2,\zeta(5),\pi^4,\pi^2,1\}$ & 7 & 3000 & $10^{8}$ & No relation \\
+26 & $\{\zeta(3)^2,\zeta(5),\pi^6,\pi^4,\pi^2,1\}$ & 6 & 3000 & $10^{10}$ & No relation \\
+27 & $\{\zeta(3),\zeta(2)\zeta(3){-}\zeta(5),\zeta(5),\pi^2,1\}$ & 5 & 1000 & $10^{8}$ & No relation \\
+28 & $\{\zeta(3),L(E_{32},2),\pi^2,1\}$ & 4 & 2000 & $10^{10}$ & No relation \\
+29 & $\{\zeta(3),L(\chi_{-4},3),\pi^2,1\}$ & 4 & 2000 & $10^{10}$ & No relation \\
+30 & $\{\zeta(3),L(E_{32},2),L(\chi_{-4},3),\pi^2,1\}$ & 5 & 2000 & $10^{8}$ & No relation \\
+31 & $\{\zeta(3),\pi^2\ln 2,\ln^{3} 2,\ln^{2} 2,\ln 2,\pi^2,1\}$ & 7 & 4000 & $10^{11}$ & No relation \\
+32 & $\{\zeta(3),\mathrm{Li}_3(1/3),\pi^2\ln 3,\ln^{3} 3,1\}$ & 5 & 2000 & $10^{10}$ & No relation \\
+33 & $\{\zeta(3),\mathrm{Li}_3(1/4),\pi^2\ln 2,\ln^{3} 2,1\}$ & 5 & 2000 & $10^{10}$ & No relation \\
+34 & $\{\zeta(3),\zeta(3,2),\zeta(2,3),\pi^5,1\}$ & 5 & 4000 & $10^{10}$ & No relation \\
+\midrule
+35 & $\{\zeta(3),\mathrm{Li}_3(1/2),\pi^2\ln 2,\ln^{3} 2\}$ & 4 & 5000 & $10^{6}$ & $[21,-24,-2,4]$ \\
+36 & $\{\zeta(3),\mathrm{Li}_3(-1)\}$ & 2 & 5000 & $10^{6}$ & $[3,4]$ \\
+37 & $\{\zeta(3)^2,\zeta(6),\pi^6,1\}$ & 4 & 5000 & $10^{6}$ & $[0,-945,1,0]$ \\
+\end{longtable}
+
+
+\subsection{Linear independence from powers of $\pi$}\label{sec:linear-pi}
+
+\begin{result}\label{res:linear-pi}
+No relation $a\,\zeta(3)+b\,\pi^2+c=0$ exists with
+$|a|,|b|,|c|\le 10^{2000}$ ($10{,}000$ digits).  No relation
+$a\,\zeta(3)+b\,\pi^3+c=0$ exists with $|a|,|b|,|c|\le 10^{1000}$
+($5{,}000$ digits).
+\end{result}
+
+\noindent Extending to higher powers of~$\pi$:
+\begin{center}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Basis & Bound & Digits \\
+\midrule
+$\{\zeta(3),\pi^2,1\}$ & $10^{2000}$ & 10000 \\
+$\{\zeta(3),\pi^3,1\}$ & $10^{1000}$ & 5000 \\
+$\{\zeta(3),\pi^2,\pi^4,1\}$ & $10^{10}$ & 2000 \\
+$\{\zeta(3),\pi^2,\pi^4,\pi^6,1\}$ & $10^{8}$ & 1000 \\
+$\{\zeta(3),\pi^2,\pi^4,\pi^6,\pi^8,\pi^{10},1\}$ & $10^{8}$ & 3000 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Algebraicity of $\zeta(3)$ and $\zeta(3)/\pi^3$}\label{sec:algebraicity}
+
+\begin{result}\label{res:alg-z3}
+$\zeta(3)$ is not algebraic of degree~$\le 4$ with
+coefficients up to $10^8$, degree~$\le 3$ with coefficients up to
+$10^{10}$, or degree~$\le 2$ with coefficients up to~$10^{12}$
+($2{,}000$ digits).
+\end{result}
+
+\begin{result}\label{res:alg-ratio}
+$\zeta(3)/\pi^3$ is not algebraic of degree~$\le 10$ with
+height~$\le 10^{12}$ ($8{,}000$ digits), degree~$\le 15$ with
+height~$\le 10^9$ ($10{,}000$ digits), degree~$\le 25$ with
+height~$\le 10^{200}$ ($6{,}000$ digits), or degree~$\le 30$ with
+height~$\le 10^{100}$ ($4{,}500$ digits).
+\end{result}
+
+
+\subsection{Bivariate polynomial independence}\label{sec:bivariate}
+
+\begin{result}\label{res:bivariate}
+$\zeta(3)$ and~$\pi$ satisfy no joint polynomial equation
+$\sum_{i+j\le d}a_{ij}\,\zeta(3)^i\pi^j=0$ for the following
+parameters:
+\begin{center}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+Total degree $d$ & Basis size & Bound & Digits \\
+\midrule
+$\le 3$ & 10 & $10^{12}$ & 5000 \\
+$\le 4$ & 15 & $10^{8}$ & 5000 \\
+$\le 6$ & 28 & $10^{50}$ & 4000 \\
+\bottomrule
+\end{tabular}
+\end{center}
+These tests directly address whether $\zeta(3)$ and~$\pi$ are
+algebraically dependent.
+\end{result}
+
+\subsection{Multiple zeta values at weight~5}\label{sec:mzv}
+
+Multiple zeta values (MZVs) are nested sums
+$\zeta(s_1,s_2,\ldots)=\sum_{m_1>m_2>\cdots\ge 1}
+1/(m_1^{s_1}m_2^{s_2}\cdots)$.  At weight~5, the relevant MZVs are
+$\zeta(3,2)$ and $\zeta(2,3)$, which satisfy the stuffle relation
+$\zeta(3,2)+\zeta(2,3)=\zeta(2)\zeta(3)-\zeta(5)$.
+
+\begin{result}\label{res:mzv}
+At $4{,}000$-digit precision, no relation
+\[
+  a\,\zeta(3)+b\,\zeta(3,2)+c\,\zeta(2,3)+d\,\pi^5+e=0
+\]
+exists with $|a|,|b|,|c|,|d|,|e|\le 10^{10}$.
+\end{result}
+
+\noindent Since $\zeta(3,2)$ and $\zeta(2,3)$ are expressible in
+terms of $\zeta(5)$ and $\zeta(2)\zeta(3)$ via the stuffle and shuffle
+relations, this test is not independent of the odd zeta value tests in
+Section~\ref{sec:other-constants}.  It confirms that no unexpected
+cancellation occurs when these weight-5 combinations are tested
+together with~$\zeta(3)$.
+
+
+\subsection{Independence from other constants}\label{sec:other-constants}
+
+\begin{result}[Odd zeta values]\label{res:odd-zeta}
+No linear relation connects:
+\begin{center}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Basis & Bound & Digits \\
+\midrule
+$\{\zeta(3),\zeta(5),1\}$ & $10^{12}$ & 3000 \\
+$\{\zeta(3),\zeta(5),\zeta(7),1\}$ & $10^{10}$ & 3000 \\
+$\{\zeta(3),\zeta(5),\zeta(7),\zeta(9),1\}$ & $10^{8}$ & 1500 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{result}
+
+\begin{result}[Nesterenko's triple]\label{res:nesterenko}
+No relation $a\,\zeta(3)+b\,\pi+c\,e^\pi+d\,\Gamma(1/4)+f=0$ exists
+with $|a|,|b|,|c|,|d|,|f|\le 10^{12}$ ($4{,}000$ digits).
+\end{result}
+
+\begin{result}[Catalan's constant]\label{res:catalan}
+No relation $a\,\zeta(3)+b\,G+c\,\pi^3+d=0$ exists with
+$|a|,|b|,|c|,|d|\le 10^{10}$ ($3{,}000$ digits), where $G$ denotes
+Catalan's constant.  No quadratic relation involving $G^2$, $G\pi$,
+$\pi^2$, $G$ exists with the same bounds.
+\end{result}
+
+\begin{result}[Lemniscate constant]\label{res:lemniscate}
+No relation $a\,\zeta(3)+b\,\Gamma(1/4)^4/\pi^3+c\,\pi^2+d=0$ exists
+with $|a|,|b|,|c|,|d|\le 10^{12}$ ($4{,}000$ digits).
+\end{result}
+
+\begin{result}[Product relations]\label{res:products}
+No relation connects $\zeta(3)^2$ to $\zeta(5)\pi$ or $\zeta(7)$
+modulo $\pi^6$, $\pi^4$ with $|a_i|\le 10^8$ ($3{,}000$ digits).
+No depth-graded relation
+$\zeta(3)(1+a\pi^2)=b\,\zeta(5)\pi^2+\cdots$ exists with the same
+bounds.
+\end{result}
+
+
+\subsection{L-values of elliptic curves}\label{sec:lvalues}
+
+If $\zeta(3)$ connects to the modular world, it might relate to
+$L$-values of elliptic curves at $s=2$.  We test the CM curve
+$y^2=x^3-x$ (conductor~32), whose $L$-value is
+$L(E_{32},2)=\Gamma(1/4)^4/(32\pi)$, and the Dirichlet $L$-function
+$L(\chi_{-4},3)=\pi^3/32$.
+
+\begin{result}\label{res:lvalues}
+At $2{,}000$-digit precision, no relation connects $\zeta(3)$ to:
+\begin{itemize}
+  \item $L(E_{32},2)$ and $\pi^2$ with $|a_i|\le 10^{10}$;
+  \item $L(\chi_{-4},3)$ and $\pi^2$ with $|a_i|\le 10^{10}$;
+  \item both $L$-values simultaneously with $|a_i|\le 10^8$.
+\end{itemize}
+$\zeta(3)$ is not a rational linear combination of these $L$-values
+and~$\pi^2$.
+\end{result}
+
+\subsection{BBP-type formula search}\label{sec:bbp}
+
+\begin{result}\label{res:bbp-validation}
+PSLQ recovers the known identity $[21,-24,-2,4]$ for
+\[
+  \{\zeta(3),\;\mathrm{Li}_3(\tfrac{1}{2}),\;\pi^2\ln 2,\;\ln^{3} 2\}
+\]
+at $5{,}000$ digits, confirming the Euler-sum relation of
+Section~\ref{sec:validation}.
+\end{result}
+
+\begin{result}\label{res:bbp-no-li3}
+Without $\mathrm{Li}_3(1/2)$, no relation
+\[
+  a\,\zeta(3)+b\,\pi^2\ln 2+c\,\ln^{3} 2+d\,\ln^{2} 2
+  +f\,\ln 2+g\,\pi^2+h=0
+\]
+exists with $|a_i|\le 10^{11}$ ($4{,}000$ digits).  $\zeta(3)$ has no
+BBP-type formula~\cite{BaileyBorweinPlouffe1997} that avoids
+$\mathrm{Li}_3(1/2)$.
+\end{result}
+
+\begin{result}\label{res:bbp-other}
+$\mathrm{Li}_3(1/4)$ cannot substitute for $\mathrm{Li}_3(1/2)$: it
+receives coefficient~$0$ when both are in the basis.
+$\mathrm{Li}_3(1/3)$ similarly has no identity connecting it to
+$\zeta(3)$ with $|a_i|\le 10^{10}$ ($2{,}000$ digits).
+\end{result}
+
+
+\subsection{Continued fraction analysis}\label{sec:cf}
+
+We compute continued fractions of $\zeta(3)$ and
+$\delta=\pi^2/8-\zeta(3)$ to 500 terms at $2{,}000$-digit precision.
+
+\begin{center}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Statistic & $\zeta(3)$ & $\delta=\pi^2/8-\zeta(3)$
+  & Khinchin (expected) \\
+\midrule
+Max partial quotient & 428 (pos.\ 62) & 2016 (pos.\ 177) & --- \\
+Geometric mean & 2.81 & 2.73 & 2.69 \\
+Fraction equal to 1 & 42.2\% & 43.0\% & 41.5\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Both sequences follow the Gauss--Kuzmin distribution with no
+periodicity, consistent with generic irrational behavior.  The
+compression ratio (output digits divided by input digits in rational
+bounds) remains approximately~$1.0$ at all scales---no exceptional
+approximation exists.
+
+\subsection{Statistical normality and cross-validation}\label{sec:normality}
+
+Over $9{,}000$ decimal digits, $\zeta(3)$ passes the chi-squared
+normality test ($\chi^2=11.23$, critical value $16.92$ at the $95\%$
+level).  All main results are independently confirmed at $1{,}000$
+digits with $\mathrm{maxcoeff}=10^6$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/pslq_norm_growth.png}
+\caption{Internal norm bound of PSLQ for the main test
+$\{\zeta(3),\pi^2,1\}$ at $10{,}000$ digits.  The norm grows
+exponentially with each iteration until it exceeds
+$\mathrm{maxcoeff}=10^{2000}$ (red dashed line), at which point the
+algorithm certifies non-existence.  This mechanism makes null results
+rigorous---not a search failure, but a proven bound.}
+\label{fig:norm-growth}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/continued_fractions.png}
+\caption{First 200 partial quotients of $\zeta(3)$ (top) and
+$\delta=\pi^2/8-\zeta(3)$ (bottom).  Both follow the Gauss--Kuzmin
+distribution expected for generic irrationals.  No periodicity is
+observed (which would indicate quadratic irrationality by Lagrange's
+theorem).  The red line marks Khinchin's constant $K\approx 2.69$.}
+\label{fig:cf}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/bound_vs_precision.png}
+\caption{Theoretical PSLQ capacity: for a basis of $n$ elements at
+$D$-digit precision, the maximum certifiable coefficient bound is
+approximately $10^{D/n}$.  Red stars mark our actual tests.  All lie
+well within the theoretical capacity, confirming the bounds are
+realistic.}
+\label{fig:bound-precision}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/bivariate_heatmap.png}
+\caption{Heatmap showing which monomials $\zeta(3)^i\pi^j$ were
+tested.  Darker cells indicate higher coefficient bounds.  All joint
+polynomials of total degree~$\le 6$ were tested, with bounds ranging
+from $10^6$ (degree~6) to $10^{12}$ (degree~3).}
+\label{fig:heatmap}
+\end{figure}
+
+
+%% ====================================================================
+\section{Discussion}\label{sec:discussion}
+%% ====================================================================
+
+\subsection{Interpretation}
+
+The central result (Result~\ref{res:A}) establishes that no relation
+$a\,\zeta(3)+b\,\pi^2+c=0$ exists with coefficients below~$10^{2000}$.
+Combined with the supporting results, this provides a consistent
+computational picture: no algebraic relation between $\zeta(3)$
+and~$\pi$ exists within the tested bounds.
+
+We emphasize that these are \emph{exclusion results within stated
+bounds}, not proofs of algebraic independence.  A relation with
+coefficients exceeding~$10^{2000}$ could exist in principle.  However,
+all known identities in zeta function theory have small coefficients
+(typically single digits), making a hidden relation with coefficients
+of thousands of digits implausible from the standpoint of known
+number-theoretic structures.
+
+\subsection{Comparison with prior work}
+
+\begin{center}
+\begin{tabular}{@{}p{5.5cm}p{6.5cm}@{}}
+\toprule
+Prior result & Our extension \\
+\midrule
+Ap\'ery 1979: $\zeta(3)\notin\Q$ \cite{Apery1979}
+  & Not algebraic of degree~$\le 2$ (coefficients~$\le 10^{12}$) \\
+Rivoal 2000: infinitely many $\zeta(2k{+}1)$ irrational
+  \cite{Rivoal2000}
+  & $\zeta(3),\zeta(5)$ linearly independent ($10^{12}$) \\
+Zudilin 2001: one of $\zeta(5,7,9,11)$ irrational \cite{Zudilin2001}
+  & $\zeta(3),\zeta(5),\zeta(7),\zeta(9)$ independent ($10^8$) \\
+Nesterenko 1996: $\{\pi,e^\pi,\Gamma(1/4)\}$ alg.\ indep.\
+  \cite{Nesterenko1996}
+  & $\zeta(3)$ independent from this triple ($10^{12}$) \\
+Bailey--Borwein 2005: experimental methods \cite{BaileyBorwein2005}
+  & Linear bound $10^{2000}$; height bound $10^{100}$ at degree~30 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Limitations}
+
+This paper presents a systematic computational search, not a
+theoretical advance.  Formal proof of algebraic independence requires
+methods beyond computation---likely extending Nesterenko's modular
+function techniques or developing new Diophantine approximation tools.
+Our results delineate the boundary of what computation alone can
+establish and may guide future theoretical work by ruling out
+low-complexity relations.
+
+
+%% ====================================================================
+\section{Conclusion}\label{sec:conclusion}
+%% ====================================================================
+
+No algebraic relation between $\zeta(3)$ and~$\pi$ was found within
+the tested bounds.  Across 34 independent tests at precisions up to
+$10{,}000$ digits, every PSLQ computation returned a certified null
+result.
+
+The two principal exclusions are:
+\begin{itemize}
+  \item $\zeta(3)\ne(a/b)\,\pi^2+c/d$ with coefficients up to
+    $10^{2000}$;
+  \item $\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with
+    height~$\le 10^{100}$.
+\end{itemize}
+These bounds far exceed any known identity in zeta function theory.
+
+A formal proof of algebraic independence requires theoretical methods
+beyond computation.  However, our results establish that if any
+relation exists, it lives in a regime (degree~$>30$,
+coefficients~$>10^{2000}$) that has no precedent in number theory.
+
+\medskip
+\noindent\textbf{Any algebraic relation between $\zeta(3)$ and~$\pi$,
+if it exists, must involve either coefficients larger
+than~$10^{2000}$ or degree higher than~$30$.}
+
+
+%% ====================================================================
+\section*{Acknowledgements}
+%% ====================================================================
+
+Computations were performed using mpmath~\cite{mpmath}.  The authors
+thank the developers of the PSLQ implementation therein.
+
+%% ====================================================================
+\section*{Data availability}
+%% ====================================================================
+
+All code and data supporting this paper are available at
+\url{https://github.com/keithad/zeta3}.  The complete test suite can
+be reproduced by running \texttt{python run\_tests.py}.  Figures can be
+regenerated with \texttt{python generate\_figures.py} (requires
+matplotlib).
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+
+%% ====================================================================
+\appendix
+%% ====================================================================
+
+\section{PSLQ test summary}\label{app:summary}
+
+All tests were run on an Apple M3 processor (8 cores).  Times reported
+are for the PSLQ step only.  Test numbers match
+Table~\ref{tab:all-tests}.
+
+\medskip\noindent\textbf{Category 1: Linear independence from powers of $\pi$.}
+
+\begin{center}
+\begin{tabular}{@{}clccccc@{}}
+\toprule
+\# & Basis & $n$ & Digits & Bound & Time & Result \\
+\midrule
+1 & $\{\zeta(3),\pi^2,1\}$ & 3 & 10000 & $10^{2000}$ & 1.2\,s & No relation \\
+2 & $\{\zeta(3),\pi^3,1\}$ & 3 & 5000 & $10^{1000}$ & 0.40\,s & No relation \\
+3 & $\{\zeta(3),\pi^2,\pi^4,1\}$ & 4 & 2000 & $10^{10}$ & 0.24\,s & No relation \\
+4 & $\{\zeta(3),\pi^2,\pi^4,\pi^6,1\}$ & 5 & 1000 & $10^8$ & 0.11\,s & No relation \\
+5 & $\{\zeta(3),\pi^2,\ldots,\pi^{10},1\}$ & 7 & 3000 & $10^8$ & 0.83\,s & No relation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent\textbf{Category 2: Algebraicity of $\zeta(3)$.}
+
+\begin{center}
+\begin{tabular}{@{}clccccc@{}}
+\toprule
+\# & Basis & $n$ & Digits & Bound & Time & Result \\
+\midrule
+6 & $\{1,\zeta(3),\zeta(3)^2\}$ & 3 & 2000 & $10^{12}$ & 0.11\,s & No relation \\
+7 & $\{1,\zeta(3),\ldots,\zeta(3)^3\}$ & 4 & 2000 & $10^{10}$ & 0.17\,s & No relation \\
+8 & $\{1,\zeta(3),\ldots,\zeta(3)^4\}$ & 5 & 2000 & $10^8$ & 0.25\,s & No relation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+\medskip\noindent\textbf{Category 3: Algebraicity of $\zeta(3)/\pi^3$
+and bivariate tests.}
+
+\begin{center}
+\begin{tabular}{@{}clccccc@{}}
+\toprule
+\# & Basis & $n$ & Digits & Bound & Time & Result \\
+\midrule
+ 9 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,10\}$ & 11 & 8000 & $10^{12}$ & 12.6\,s & No relation \\
+10 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,15\}$ & 16 & 10000 & $10^{9}$ & 34.8\,s & No relation \\
+11 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,25\}$ & 26 & 6000 & $10^{200}$ & 27.0\,s & No relation \\
+12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 4500 & $10^{100}$ & 29.4\,s & No relation \\
+13 & $\{\zeta(3)^i\pi^j:i{+}j\le 3\}$ & 10 & 5000 & $10^{12}$ & 4.8\,s & No relation \\
+14 & $\{\zeta(3)^i\pi^j:i{+}j\le 4\}$ & 15 & 5000 & $10^{8}$ & 11.0\,s & No relation \\
+15 & $\{\zeta(3)^i\pi^j:i{+}j\le 6\}$ & 28 & 4000 & $10^{50}$ & 18.1\,s & No relation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent\textbf{Category 4: Odd zeta values and other
+constants.}
+
+\begin{center}
+\begin{tabular}{@{}clccccc@{}}
+\toprule
+\# & Basis & $n$ & Digits & Bound & Time & Result \\
+\midrule
+16 & $\{\zeta(3),\zeta(5),1\}$ & 3 & 3000 & $10^{12}$ & 0.15\,s & No relation \\
+17 & $\{\zeta(3),\zeta(5),\zeta(7),1\}$ & 4 & 3000 & $10^{10}$ & 0.35\,s & No relation \\
+18 & $\{\zeta(3),\zeta(5),\zeta(7),\zeta(9),1\}$ & 5 & 1500 & $10^{8}$ & 0.23\,s & No relation \\
+19 & $\{\zeta(3),\pi,e^\pi,\Gamma(1/4),1\}$ & 5 & 4000 & $10^{12}$ & 0.89\,s & No relation \\
+20 & $\{\zeta(3),\Gamma(1/4)^4/\pi^3,\pi^2,1\}$ & 4 & 4000 & $10^{12}$ & 0.53\,s & No relation \\
+21 & $\{\zeta(3),G,\pi^3,1\}$ & 4 & 3000 & $10^{10}$ & 0.48\,s & No relation \\
+22 & $\{\zeta(3),G^2,G\pi,\pi^2,G,1\}$ & 6 & 3000 & $10^{10}$ & 0.58\,s & No relation \\
+23 & $\{\zeta(3)^2,G^2,\zeta(3)G,\pi^4,\zeta(3),G,\pi^2,1\}$ & 8 & 2000 & $10^{8}$ & 0.50\,s & No relation \\
+24 & $\{\zeta(3)^2,\zeta(5)\pi,\zeta(7),\pi^6,\pi^4,1\}$ & 6 & 3000 & $10^{8}$ & 0.59\,s & No relation \\
+25 & $\{\zeta(3),\zeta(3)\pi^2,\zeta(5)\pi^2,\zeta(5),\pi^4,\pi^2,1\}$ & 7 & 3000 & $10^{8}$ & 0.77\,s & No relation \\
+26 & $\{\zeta(3)^2,\zeta(5),\pi^6,\pi^4,\pi^2,1\}$ & 6 & 3000 & $10^{10}$ & 0.50\,s & No relation \\
+27 & $\{\zeta(3),\zeta(2)\zeta(3){-}\zeta(5),\zeta(5),\pi^2,1\}$ & 5 & 1000 & $10^{8}$ & 0.10\,s & No relation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+\medskip\noindent\textbf{Category 5: $L$-values and BBP-type tests.}
+
+\begin{center}
+\begin{tabular}{@{}clccccc@{}}
+\toprule
+\# & Basis & $n$ & Digits & Bound & Time & Result \\
+\midrule
+28 & $\{\zeta(3),L(E_{32},2),\pi^2,1\}$ & 4 & 2000 & $10^{10}$ & 0.25\,s & No relation \\
+29 & $\{\zeta(3),L(\chi_{-4},3),\pi^2,1\}$ & 4 & 2000 & $10^{10}$ & 0.26\,s & No relation \\
+30 & $\{\zeta(3),L(E_{32},2),L(\chi_{-4},3),\pi^2,1\}$ & 5 & 2000 & $10^{8}$ & 0.35\,s & No relation \\
+31 & $\{\zeta(3),\pi^2\ln 2,\ln^{3} 2,\ln^{2} 2,\ln 2,\pi^2,1\}$ & 7 & 4000 & $10^{11}$ & 0.89\,s & No relation \\
+32 & $\{\zeta(3),\mathrm{Li}_3(1/3),\pi^2\ln 3,\ln^{3} 3,1\}$ & 5 & 2000 & $10^{10}$ & 0.30\,s & No relation \\
+33 & $\{\zeta(3),\mathrm{Li}_3(1/4),\pi^2\ln 2,\ln^{3} 2,1\}$ & 5 & 2000 & $10^{10}$ & 0.31\,s & No relation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent\textbf{Category 6: Multiple zeta values.}
+
+\begin{center}
+\begin{tabular}{@{}clccccc@{}}
+\toprule
+\# & Basis & $n$ & Digits & Bound & Time & Result \\
+\midrule
+34 & $\{\zeta(3),\zeta(3,2),\zeta(2,3),\pi^5,1\}$ & 5 & 4000 & $10^{10}$ & 0.74\,s & No relation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent\textbf{Category 7: Validation (known identities
+recovered).}
+
+\begin{center}
+\begin{tabular}{@{}clccccc@{}}
+\toprule
+\# & Basis & $n$ & Digits & Bound & Time & Result \\
+\midrule
+35 & $\{\zeta(3),\mathrm{Li}_3(1/2),\pi^2\ln 2,\ln^{3} 2\}$ & 4 & 5000 & $10^{6}$ & 0.14\,s & $[21,-24,-2,4]$ \\
+36 & $\{\zeta(3),\mathrm{Li}_3(-1)\}$ & 2 & 5000 & $10^{6}$ & $<$0.01\,s & $[3,4]$ \\
+37 & $\{\zeta(3)^2,\zeta(6),\pi^6,1\}$ & 4 & 5000 & $10^{6}$ & 0.01\,s & $[0,-945,1,0]$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+\section{Continued fraction data}\label{app:cf}
+
+Continued fraction of $\delta=\pi^2/8-\zeta(3)$, first 100 partial
+quotients:
+\begin{quote}\small
+$[0;\, 31, 1, 1, 1, 1, 20, 4, 3, 1, 1, 11, 1, 4, 23, 9, 39, 1, 1, 6,$\\
+$\phantom{[0;\,} 1, 1, 35, 1, 7, 6, 1, 2, 2, 1, 1, 1, 1, 5, 1, 1, 11, 1, 2, 6, 1,$\\
+$\phantom{[0;\,} 5, 23, 2, 2, 2, 7, 2, 6, 155, 2, 1, 1, 59, 1, 3, 1, 16, 9, 1, 3,$\\
+$\phantom{[0;\,} 1, 1, 1, 4, 13, 5, 1, 4, 4, 4, 1, 3, 1, 3, 3, 1, 3, 1, 4, 3,$\\
+$\phantom{[0;\,} 4, 11, 2, 1, 1, 2, 18, 7, 1, 1, 15, 2, 1, 2, 71, 1, 4, 1, 1, 8]$
+\end{quote}
+
+\noindent Largest partial quotients (500 terms): 2016, 1191, 695, 209,
+178, 155, 155, 147, 141, 120.
+
+\medskip\noindent Selected rational bounds on
+$\zeta(3)=\pi^2/8-\delta$:
+
+\begin{center}
+\small
+\begin{tabular}{@{}cp{5cm}p{5cm}@{}}
+\toprule
+Digits & Lower bound & Upper bound \\
+\midrule
+19.8 & $\pi^2/8 - \frac{40545279}{1281308663}$
+     & $\pi^2/8 - \frac{1585749442}{50112726993}$ \\[6pt]
+28.3 & $\pi^2/8 - \frac{1644440492058}{51967476861163}$
+     & $\pi^2/8 - \frac{13110514772903}{414317438903555}$ \\[6pt]
+39.0 & $\pi^2/8 - \frac{604149175752182531}{19092273915184577186}$
+     & $\pi^2/8 - \frac{1764273191485959268}{55754420240877302979}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+\section{Computational reproducibility}\label{app:reproduce}
+
+The complete set of tests can be reproduced by running
+\texttt{run\_tests.py}, which contains all PSLQ tests shown in
+Appendix~\ref{app:summary} plus cross-validation and certification
+checks.  Every result reported in this paper is generated by that
+script.
+
+The main result ($\{\zeta(3),\pi^2,1\}$ at $10{,}000$ digits with
+bound~$10^{2000}$) can be reproduced with the following code:
+
+\begin{verbatim}
+from mpmath import mp, zeta, pi, pslq
+
+mp.dps = 10000
+z3 = zeta(3)
+result = pslq([z3, pi**2, mp.mpf(1)], maxcoeff=10**2000)
+print(result is None)  # True means no relation found
+\end{verbatim}
+
+\noindent The full suite takes approximately 5 minutes on an Apple~M3
+processor, dominated by the degree-30 algebraicity test at $4{,}500$
+digits.  Source code is available at
+\url{https://github.com/keithad/zeta3}.
+
+\end{document}

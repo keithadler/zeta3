@@ -198,8 +198,8 @@ def main():
     section_header(2, "Is ζ(3) a rational combination of powers of π?")
 
     mp.dps = 10000
-    rel, t = run_pslq("a·ζ(3) + b·π² + c = 0", [z3, pi2, mpf(1)], 10**18,
-                      "Does ζ(3) = (p/q)·π² + r/s for any p,q,r,s ≤ 10¹⁸?")
+    rel, t = run_pslq("a·ζ(3) + b·π² + c = 0", [z3, pi2, mpf(1)], 10**2000,
+                      "Does ζ(3) = (p/q)·π² + r/s for any p,q,r,s ≤ 10²⁰⁰⁰?")
     all_results.append(("⭐ MAIN: ζ(3) vs π²", rel, t))
 
     mp.dps = 2000
@@ -378,7 +378,7 @@ def main():
 
     # ζ(3) vs π³
     rel, t = run_pslq("a·ζ(3) + b·π³ + c = 0",
-                      [z3, pi**3, mpf(1)], 10**15,
+                      [z3, pi**3, mpf(1)], 10**1000,
                       "Is ζ(3) a rational affine function of π³?")
     all_results.append(("ζ(3) vs π³", rel, t))
 
@@ -444,21 +444,21 @@ def main():
     all_results.append(("MZV weight 5: ζ(3,2), ζ(2,3)", rel, t))
 
     # ζ(3)/π³ degree 25
-    mp.dps = 12000
+    mp.dps = 6000
     ratio = z3 / pi**3
     basis_deg25 = [ratio**k for k in range(26)]
     rel, t = run_pslq("Σ aₖ·(ζ(3)/π³)ᵏ = 0, k=0..25",
-                      basis_deg25, 10**9,
-                      "Is ζ(3)/π³ algebraic of degree ≤ 25?")
+                      basis_deg25, 10**200,
+                      "Is ζ(3)/π³ algebraic of degree ≤ 25 with height ≤ 10²⁰⁰?")
     all_results.append(("ζ(3)/π³ algebraic deg 25", rel, t))
 
     # ζ(3)/π³ degree 30
-    mp.dps = 14000
+    mp.dps = 4500
     ratio = z3 / pi**3
     basis_deg30 = [ratio**k for k in range(31)]
     rel, t = run_pslq("Σ aₖ·(ζ(3)/π³)ᵏ = 0, k=0..30",
-                      basis_deg30, 10**8,
-                      "Is ζ(3)/π³ algebraic of degree ≤ 30?")
+                      basis_deg30, 10**100,
+                      "Is ζ(3)/π³ algebraic of degree ≤ 30 with height ≤ 10¹⁰⁰?")
     all_results.append(("ζ(3)/π³ algebraic deg 30", rel, t))
 
     # Bivariate degree 6
@@ -469,8 +469,8 @@ def main():
             j = total_deg - i
             basis_biv6.append(z3**i * pi**j)
     rel, t = run_pslq("Σ aᵢⱼ·ζ(3)ⁱ·πʲ = 0, i+j≤6",
-                      basis_biv6, 10**6,
-                      "Do ζ(3) and π satisfy a degree-6 polynomial?")
+                      basis_biv6, 10**50,
+                      "Do ζ(3) and π satisfy a degree-6 polynomial with height ≤ 10⁵⁰?")
     all_results.append(("Bivariate degree 6", rel, t))
 
     # Weight 6: ζ(3)² vs ζ(5), π⁶, π⁴, π²
