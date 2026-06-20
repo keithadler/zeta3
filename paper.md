@@ -12,14 +12,6 @@ We use high-precision PSLQ to search for algebraic relations between ζ(3) and �
 
 ---
 
-## What This Paper Actually Means (For Non-Mathematicians)
-
-We know ζ(2) = π²/6. Does ζ(3) have any similar formula? We tested this at up to 12,000-digit precision using an algorithm that *certifies* non-existence - not just "didn't find one" but "proved there isn't one" within the tested bounds.
-
-**Answer: No formula was found** with coefficients up to 10¹⁸ or polynomial degree up to 30. If a connection between ζ(3) and π exists, it must involve coefficients or degree beyond what any known identity in number theory requires.
-
----
-
 ## 1. Introduction
 
 The Riemann zeta function at s = 3,
