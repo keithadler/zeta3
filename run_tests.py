@@ -1,10 +1,10 @@
 """
 Computational Evidence for the Algebraic Independence of ζ(3) from π
 =====================================================================
-Authors: Keith Adler, William R. Adler
-Date: May 2026
+Author: Keith Adler
+Date: July 2026
 
-MIT License - Copyright (c) 2026 Keith Adler, William R. Adler
+MIT License - Copyright (c) 2026 Keith Adler
 See LICENSE file for full terms.
 
 MATHEMATICAL BACKGROUND
@@ -21,9 +21,12 @@ x₁,...,xₙ computed to D digits, either:
   (a) finds integers a₁,...,aₙ with a₁x₁ + ... + aₙxₙ = 0, or
   (b) CERTIFIES that no such relation exists with max|aᵢ| ≤ M.
 
-A null result is a rigorous guarantee (not a search failure). The algorithm
-terminates when its internal norm bound exceeds maxcoeff, proving any
-relation must have larger coefficients.
+A null result is a rigorous guarantee (not a search failure) ONLY when the
+algorithm terminates because its internal norm bound exceeds maxcoeff.
+Exhausting the iteration limit proves nothing. Every test below therefore
+runs with a maxsteps budget large enough for the norm bound to cross
+maxcoeff, captures PSLQ's verbose output, and verifies the exit norm.
+Any null result that is not norm-certified is flagged loudly.
 
 COEFFICIENT BOUNDS
 ------------------
@@ -39,37 +42,79 @@ from mpmath import gamma as gammafunc
 import math
 import time
 import sys
+import io
+import re
+import contextlib
+
+# PSLQ norm bounds reach 10^2000; Python 3.11+ caps int->str conversion
+# at 4300 digits by default, which both mpmath's verbose printing and our
+# norm parsing would trip over.
+sys.set_int_max_str_digits(2_000_000)
+
+# Per-test certification log: (label, certified, exit_norm_digits, bound_digits)
+CERTIFICATIONS = []
 
 
-def run_pslq(label, basis_vals, maxcoeff, description=""):
+def run_pslq(label, basis_vals, maxcoeff, description="", maxsteps=None):
     """
     Run PSLQ on a basis vector and report results.
-    
+
     Given basis [x₁, x₂, ..., xₙ], PSLQ searches for integers [a₁, ..., aₙ]
     with a₁x₁ + a₂x₂ + ... + aₙxₙ = 0 and max|aᵢ| < maxcoeff.
-    
-    Returns None if no relation exists (certified), or the coefficient vector.
+
+    Returns None if no relation exists, or the coefficient vector.
     The tolerance is set to 10^(-(dps-200)) to leave margin for rounding.
+
+    A null result is only a certificate when PSLQ's internal norm bound
+    exceeded maxcoeff at exit. Empirically, the iteration count needed for
+    the norm bound to reach 10^B scales like n²·B for an n-element basis
+    (n=3 reaches 10^2000 at ~10,700 steps; n=11 reaches 10^12 at ~2,700),
+    so mpmath's default maxsteps=100 is far too small: we budget
+    4·n²·log10(maxcoeff) steps (a 2-4x margin over the empirical rate),
+    capture PSLQ's verbose output, and verify the exit norm. Uncertified
+    nulls are flagged and recorded.
     """
     tol = mpf(10) ** (-(mp.dps - 200))
+    n = len(basis_vals)
+    bound_digits = int(round(math.log10(maxcoeff)))
+    if maxsteps is None:
+        maxsteps = max(3000, 4 * n * n * bound_digits)
 
     print(f"    🔬 Testing: {label}")
-    print(f"       Basis size: {len(basis_vals)} | Precision: {mp.dps} digits | Bound: {maxcoeff:.0e}")
+    print(f"       Basis size: {n} | Precision: {mp.dps} digits | Bound: 10^{bound_digits} | Max steps: {maxsteps}")
     if description:
         print(f"       Question: {description}")
     sys.stdout.flush()
 
     t0 = time.time()
-    rel = pslq(basis_vals, maxcoeff=maxcoeff, tol=tol)
+    f = io.StringIO()
+    with contextlib.redirect_stdout(f):
+        rel = pslq(basis_vals, maxcoeff=maxcoeff, tol=tol,
+                   maxsteps=maxsteps, verbose=True)
     elapsed = time.time() - t0
+    verbose_out = f.getvalue()
 
     if rel:
         residual = sum(mpf(c) * v for c, v in zip(rel, basis_vals))
         print(f"       ✅ FOUND relation in {elapsed:.3f}s")
         print(f"       📐 Coefficients: {rel}")
         print(f"       📏 Residual: {nstr(abs(residual), 5)}")
+        CERTIFICATIONS.append((label, True, None, bound_digits))
     else:
-        print(f"       ❌ No relation exists (certified in {elapsed:.3f}s)")
+        m = re.search(r"Norm bound: (\d+)", verbose_out)
+        exit_norm = int(m.group(1)) if m else 0
+        norm_digits = len(str(exit_norm)) - 1 if exit_norm > 0 else 0
+        certified = exit_norm >= maxcoeff
+        CERTIFICATIONS.append((label, certified, norm_digits, bound_digits))
+        if certified:
+            print(f"       ❌ No relation exists - CERTIFIED via norm bound "
+                  f"(norm ~10^{norm_digits} ≥ 10^{bound_digits}) in {elapsed:.3f}s")
+        else:
+            print(f"       ⚠️  NULL RESULT NOT CERTIFIED: exit norm ~10^{norm_digits} "
+                  f"< bound 10^{bound_digits}")
+            print(f"       PSLQ stopped without proving non-existence "
+                  f"(maxsteps={maxsteps} exhausted or precision limit). "
+                  f"Increase maxsteps or precision, or lower the bound.")
 
     print()
     return rel, elapsed
@@ -124,7 +169,7 @@ def main():
     print("  ┌──────────────────────────────────────────────────────────────────────┐")
     print("  │  🧮 PSLQ TEST SUITE                                                  │")
     print("  │  Computational Evidence for Algebraic Independence of ζ(3)            │")
-    print("  │  Keith Adler & William R. Adler, May 2026                             │")
+    print("  │  Keith Adler, July 2026                                                │")
     print("  └──────────────────────────────────────────────────────────────────────┘")
     print()
     print(f"  🖥️  Python {sys.version.split()[0]} | mpmath arbitrary-precision arithmetic")
@@ -337,7 +382,10 @@ def main():
     section_header("6b", "Algebraic independence: bivariate polynomials and ζ(3)/π³")
 
     # ζ(3)/π³ algebraicity test (degree 10)
-    mp.dps = 8000
+    # Precision is right-sized to the certificate: capacity ~10^((D-200)/n)
+    # must comfortably exceed the bound. Excess precision only slows each
+    # iteration without strengthening the certificate.
+    mp.dps = 1500
     ratio = z3 / pi**3
     basis_ratio = [ratio**k for k in range(11)]
     rel, t = run_pslq("Σ aₖ·(ζ(3)/π³)ᵏ = 0, k=0..10",
@@ -346,7 +394,7 @@ def main():
     all_results.append(("ζ(3)/π³ algebraic deg 10", rel, t))
 
     # ζ(3)/π³ algebraicity test (degree 15)
-    mp.dps = 10000
+    mp.dps = 1500
     ratio = z3 / pi**3
     basis_ratio15 = [ratio**k for k in range(16)]
     rel, t = run_pslq("Σ aₖ·(ζ(3)/π³)ᵏ = 0, k=0..15",
@@ -355,7 +403,7 @@ def main():
     all_results.append(("ζ(3)/π³ algebraic deg 15", rel, t))
 
     # Bivariate degree 3
-    mp.dps = 5000
+    mp.dps = 2000
     basis_biv3 = []
     for total_deg in range(4):
         for i in range(total_deg + 1):
@@ -377,7 +425,9 @@ def main():
                       "Do ζ(3) and π satisfy a degree-4 polynomial?")
     all_results.append(("Bivariate degree 4", rel, t))
 
-    # ζ(3) vs π³
+    # ζ(3) vs π³ (certificate at 10^1000 requires capacity 10^((D-200)/3),
+    # so 5000 digits gives ample margin)
+    mp.dps = 5000
     rel, t = run_pslq("a·ζ(3) + b·π³ + c = 0",
                       [z3, pi**3, mpf(1)], 10**1000,
                       "Is ζ(3) a rational affine function of π³?")
@@ -445,33 +495,33 @@ def main():
     all_results.append(("MZV weight 5: ζ(3,2), ζ(2,3)", rel, t))
 
     # ζ(3)/π³ degree 25
-    mp.dps = 6000
+    mp.dps = 1500
     ratio = z3 / pi**3
     basis_deg25 = [ratio**k for k in range(26)]
     rel, t = run_pslq("Σ aₖ·(ζ(3)/π³)ᵏ = 0, k=0..25",
-                      basis_deg25, 10**200,
-                      "Is ζ(3)/π³ algebraic of degree ≤ 25 with height ≤ 10²⁰⁰?")
+                      basis_deg25, 10**10,
+                      "Is ζ(3)/π³ algebraic of degree ≤ 25 with height ≤ 10¹⁰?")
     all_results.append(("ζ(3)/π³ algebraic deg 25", rel, t))
 
     # ζ(3)/π³ degree 30
-    mp.dps = 4500
+    mp.dps = 1500
     ratio = z3 / pi**3
     basis_deg30 = [ratio**k for k in range(31)]
     rel, t = run_pslq("Σ aₖ·(ζ(3)/π³)ᵏ = 0, k=0..30",
-                      basis_deg30, 10**100,
-                      "Is ζ(3)/π³ algebraic of degree ≤ 30 with height ≤ 10¹⁰⁰?")
+                      basis_deg30, 10**8,
+                      "Is ζ(3)/π³ algebraic of degree ≤ 30 with height ≤ 10⁸?")
     all_results.append(("ζ(3)/π³ algebraic deg 30", rel, t))
 
     # Bivariate degree 6
-    mp.dps = 4000
+    mp.dps = 1500
     basis_biv6 = []
     for total_deg in range(7):
         for i in range(total_deg + 1):
             j = total_deg - i
             basis_biv6.append(z3**i * pi**j)
     rel, t = run_pslq("Σ aᵢⱼ·ζ(3)ⁱ·πʲ = 0, i+j≤6",
-                      basis_biv6, 10**50,
-                      "Do ζ(3) and π satisfy a degree-6 polynomial with height ≤ 10⁵⁰?")
+                      basis_biv6, 10**8,
+                      "Do ζ(3) and π satisfy a degree-6 polynomial with height ≤ 10⁸?")
     all_results.append(("Bivariate degree 6", rel, t))
 
     # Weight 6: ζ(3)² vs ζ(5), π⁶, π⁴, π²
@@ -589,61 +639,9 @@ def main():
     print()
 
     # ==================================================================
-    # SECTION 9: Certification verification
-    # Verify that PSLQ terminates via its norm bound (line 290 of
-    # mpmath's source), NOT by exhausting maxsteps (line 295).
-    # When norm ≥ maxcoeff, the result is a rigorous certificate.
-    # When maxsteps is exhausted, it's just "gave up" (not rigorous).
+    # SECTION 9: Cross-validation
     # ==================================================================
-    section_header(9, "Certification verification (norm bound check)")
-
-    print("    🔒 Verifying that PSLQ terminates via norm bound (not iteration limit).")
-    print("       When the internal norm exceeds maxcoeff, the result is a rigorous")
-    print("       certificate of non-existence - not just a failure to find.")
-    print()
-
-    # Run the main test with a custom wrapper that captures the norm
-    mp.dps = 10000
-    import io
-    import contextlib
-
-    # Capture verbose output to check norm bound
-    f = io.StringIO()
-    with contextlib.redirect_stdout(f):
-        pslq([z3, pi2, mpf(1)], maxcoeff=10**2000, verbose=True)
-    output = f.getvalue()
-
-    # Parse the final norm from verbose output
-    lines_out = output.strip().split('\n')
-    final_line = [l for l in lines_out if 'Norm bound:' in l]
-    if final_line:
-        norm_str = final_line[0].split('Norm bound:')[1].strip()
-        norm_val = int(norm_str)
-        certified = norm_val >= 10**2000
-        print(f"    📐 Main test {{ζ(3), π², 1}} at 10000 digits:")
-        print(f"       Final norm bound: ~10^{len(str(norm_val))-1}")
-        print(f"       Required bound:   10^2000")
-        if certified:
-            print(f"       ✅ CERTIFIED: norm ≥ maxcoeff = 10^2000")
-            print(f"       The algorithm terminated because the norm exceeded the bound,")
-            print(f"       not because it ran out of iterations. This is a rigorous guarantee.")
-        else:
-            print(f"       ⚠️  NOT CERTIFIED: norm < maxcoeff = 10^2000")
-            print(f"       The algorithm may have hit the iteration limit.")
-    else:
-        # Check if it terminated via norm (no "Norm bound" in cancellation message means
-        # it found the relation or hit a different exit)
-        cancel_line = [l for l in lines_out if 'CANCELLING' in l]
-        if cancel_line:
-            print(f"    ⚠️  Could not parse norm bound from verbose output")
-        else:
-            print(f"    ℹ️  Test did not produce cancellation message")
-    print()
-
-    # ==================================================================
-    # SECTION 10: Cross-validation
-    # ==================================================================
-    section_header(10, "Lower-precision cross-validation")
+    section_header(9, "Lower-precision cross-validation")
 
     print("    🔄 Running independent checks at 1000 digits / maxcoeff 10⁶")
     print("       to confirm main results are stable across precision levels.")
@@ -663,6 +661,39 @@ def main():
     all_results.append(("Cross-check: Nesterenko", rel, t))
 
     # ==================================================================
+    # SECTION 10: Certification verification
+    # Every test above captured PSLQ's verbose output and recorded
+    # whether the exit was via the norm bound (norm ≥ maxcoeff, a
+    # rigorous certificate) or not (maxsteps/precision exhausted -
+    # proves nothing). Audit every test, including the cross-checks.
+    # ==================================================================
+    section_header(10, "Certification verification (norm bound audit)")
+
+    print("    🔒 A null result is rigorous only if PSLQ exited because its")
+    print("       internal norm bound exceeded maxcoeff. Auditing every test:")
+    print()
+
+    null_certs = [(lb, cert, nd, bd) for lb, cert, nd, bd in CERTIFICATIONS
+                  if nd is not None]
+    uncertified = [(lb, cert, nd, bd) for lb, cert, nd, bd in null_certs
+                   if not cert]
+
+    for lb, cert, nd, bd in null_certs:
+        mark = "✅" if cert else "⚠️ "
+        print(f"    {mark} {lb}")
+        print(f"        exit norm ~10^{nd} vs bound 10^{bd}"
+              f" - {'CERTIFIED' if cert else 'NOT CERTIFIED'}")
+
+    print()
+    if uncertified:
+        print(f"    ⚠️  {len(uncertified)} of {len(null_certs)} null results are NOT certified.")
+        print(f"       These must not be reported as exclusion bounds.")
+    else:
+        print(f"    ✅ All {len(null_certs)} null results are norm-certified:")
+        print(f"       every exclusion bound reported by this suite is rigorous.")
+    print()
+
+    # ==================================================================
     # FINAL SUMMARY
     # ==================================================================
     total_elapsed = time.time() - total_t0
@@ -676,10 +707,16 @@ def main():
     null_count = sum(1 for _, rel, _ in all_results if rel is None)
     found_count = sum(1 for _, rel, _ in all_results if rel is not None)
     total_pslq_time = sum(t for _, _, t in all_results)
+    # all_results and CERTIFICATIONS are appended once per run_pslq call,
+    # in the same order, so align them positionally.
+    certs_in_order = [cert for _, cert, _, _ in CERTIFICATIONS]
+    uncert_count = sum(1 for lb, cert, nd, bd in CERTIFICATIONS
+                       if nd is not None and not cert)
 
     print(f"  ⏱️  Total time: {total_elapsed:.1f}s (PSLQ steps: {total_pslq_time:.1f}s)")
     print(f"  🧪 Tests run: {len(all_results)}")
-    print(f"  ❌ Null results (no relation): {null_count}")
+    print(f"  ❌ Null results (no relation): {null_count}"
+          + (f"  [⚠️ {uncert_count} NOT certified]" if uncert_count else "  [all norm-certified]"))
     print(f"  ✅ Relations found: {found_count}")
     print()
 
@@ -687,12 +724,14 @@ def main():
     print("  📋 Breakdown:")
     print()
 
-    for label, rel, t in all_results:
+    for (label, rel, t), certified in zip(all_results, certs_in_order):
         if rel is not None:
             print(f"     ✅ {label}")
             print(f"        Coefficients: {rel}")
-        else:
+        elif certified:
             print(f"     ❌ {label} - no relation (certified)")
+        else:
+            print(f"     ⚠️  {label} - no relation found (NOT certified)")
 
     print()
     print()
@@ -701,7 +740,8 @@ def main():
     print("  │  ⭐ MAIN RESULT: No relation a·ζ(3) + b·π² + c = 0 exists           │")
     print("  │     with |a|, |b|, |c| ≤ 10²⁰⁰⁰ (verified at 10000 digits)         │")
     print("  │                                                                      │")
-    print("  │  🔬 34 independent null results across all test categories            │")
+    cert_note = "all norm-certified" if not uncert_count else f"⚠️ {uncert_count} UNCERTIFIED"
+    print(f"  │  🔬 {null_count} independent null results ({cert_note})                 │")
     print("  │  ✅ 3 known identities correctly recovered (validation)              │")
     print("  │  📈 Continued fractions show generic irrational behavior              │")
     print(f"  │  📊 Digit normality test passed (χ² = {chi_sq:.2f})                         │")

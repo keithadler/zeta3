@@ -38,24 +38,29 @@
 \hyphenation{sys-tem-at-i-cal-ly cer-tif-i-cate non-ex-is-tence}
 
 \title{High-Precision Computational Tests on $\zeta(3)$ and $\pi$}
-\author{Keith Adler \and William R.\ Adler}
-\date{May 2026}
+\author{Keith Adler}
+\date{July 2026}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-We employ the PSLQ integer relation algorithm at high precision to search
-systematically for algebraic relations between $\zeta(3)$ and~$\pi$.
+We employ the PSLQ integer relation algorithm to search systematically
+for algebraic relations between $\zeta(3)$ and~$\pi$.
 Our principal results are:
 (1)~no relation $a\,\zeta(3) + b\,\pi^2 + c = 0$ exists with
-$|a|,|b|,|c| \le 10^{2000}$ (verified at $10{,}000$-digit precision);
+$|a|,|b|,|c| \le 10^{2000}$ (certified at $10{,}000$-digit precision);
 (2)~$\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with
-polynomial height~$\le 10^{100}$ ($4{,}500$ digits);
+polynomial height~$\le 10^{8}$;
 (3)~$\zeta(3)$ and~$\pi$ satisfy no joint polynomial of total
-degree~$\le 6$ ($4{,}000$ digits);
+degree~$\le 6$ with coefficients~$\le 10^{8}$;
 (4)~no linear relation connects $\zeta(3)$, $\zeta(3,2)$, $\zeta(2,3)$,
 and~$\pi^5$ at weight~5.
+Every null result is certified by PSLQ's norm-bound exit condition,
+not merely a failure to find; we document the iteration budgets and
+working precisions this requires, including a cautionary observation
+that integer-relation software at default iteration limits silently
+produces uncertified null results.
 All~37 PSLQ tests---34 yielding certified null results and 3 recovering
 known identities---are reported with full parameters.  The accompanying
 code is publicly available for independent verification.
@@ -128,16 +133,52 @@ either:
     $\max|a_i|\le M$.
 \end{enumerate}
 A null result from PSLQ is a \emph{mathematical guarantee}, not a
-search failure.  The algorithm maintains an internal norm bound that
-grows monotonically; when this bound exceeds the prescribed
-$\mathrm{maxcoeff}$, the algorithm terminates with a rigorous
-certificate that any integer relation must have
-$\max|a_i|>\mathrm{maxcoeff}$.
+search failure, provided the algorithm terminates for the right
+reason.  PSLQ maintains an internal norm bound that grows
+monotonically with the iteration count; when this bound exceeds the
+prescribed $\mathrm{maxcoeff}$, the algorithm terminates with a
+rigorous certificate that any integer relation must have
+$\max|a_i|>\mathrm{maxcoeff}$.  Exhausting the iteration limit, by
+contrast, proves nothing.  This distinction is easy to overlook in
+practice: the mpmath implementation used here caps PSLQ at
+$\mathrm{maxsteps}=100$ iterations by default and returns the same
+null value whether it certified non-existence or merely ran out of
+steps.  At that budget the norm bound certifies essentially nothing
+for bases with more than a few elements.  Null results obtained from
+integer-relation software at default settings should therefore not be
+reported as exclusion bounds without checking the exit condition.
 
-For the main test ($\{\zeta(3),\pi^2,1\}$ at $10{,}000$ digits), the
-internal norm bound exceeds~$10^{2000}$ before termination, confirming
-exit via the norm-exceeds-maxcoeff condition rather than exhaustion of
-the iteration limit.
+We measure empirically that the iteration count required for the norm
+bound to reach $10^{B}$ on an $n$-element basis scales like
+$n^{2}B$ (the 3-element main test reaches $10^{2000}$ at
+iteration~$10{,}687$; the 11-element degree-10 test reaches $10^{12}$
+at iteration~$2{,}708$; the 31-element degree-30 test reaches
+$10^{8}$ at iteration~$17{,}327$).  Each test is therefore allotted a
+budget of $4n^{2}\log_{10}(\mathrm{maxcoeff})$ iterations, roughly a
+twofold to fourfold margin over the empirical requirement.  For every
+null result reported in this paper, the test harness captures the
+algorithm's diagnostic output and verifies that the exit norm met or
+exceeded $\mathrm{maxcoeff}$; the audit is repeated programmatically
+on every run of the accompanying test suite.
+
+\subsection{Right-sizing the working precision}\label{sec:precision}
+
+For a basis of $n$ elements at $D$-digit precision, PSLQ can certify
+non-existence of relations with coefficients up to approximately
+$10^{D/n}$~\cite{FergusonBaileyArwade1999}.  Working precision beyond
+what this capacity requires does not strengthen the certificate; it
+only inflates the cost of each iteration, since big-integer arithmetic
+scales superlinearly in~$D$.  Because the iteration count scales
+like~$n^{2}B$ while per-iteration cost scales with~$D$, the efficient
+design for a target bound~$10^{B}$ is to choose~$D$ a small multiple
+of~$nB$ and spend the compute budget on iterations instead.  For
+example, certifying height~$10^{8}$ for the 31-element degree-30
+basis at $1{,}500$ digits takes about 18~minutes on our hardware,
+whereas at $4{,}500$ digits the same certificate would take roughly
+an hour, and a 100-iteration run at any precision certifies nothing.
+The precisions in Table~\ref{tab:all-tests} are chosen accordingly:
+high precision is reserved for the small bases, where it directly
+translates into enormous certified bounds.
 
 \subsection{Theoretical capacity}\label{sec:capacity}
 
@@ -154,9 +195,10 @@ in this paper use bounds well within this theoretical capacity
     depending on the test.
   \item \textbf{Hardware:} Apple M3 processor (8 cores).
   \item \textbf{Software:} Python~3.14, mpmath~1.4.1~\cite{mpmath}.
-  \item \textbf{Total runtime:} Approximately 5 minutes for the full
-    suite, dominated by the degree-30 algebraicity test at $4{,}500$
-    digits.
+  \item \textbf{Total runtime:} Approximately 55 minutes for the full
+    suite, dominated by the degree-30 algebraicity certificate
+    (18~minutes), the bivariate degree-6 certificate (13~minutes), and
+    the degree-25 certificate (9~minutes).
 \end{itemize}
 
 
@@ -203,10 +245,9 @@ $\max(|a|,|b|,|c|)\le 10^{2000}$.
 \end{result}
 
 \begin{result}[Non-algebraicity of $\zeta(3)/\pi^3$]\label{res:B}
-At $4{,}500$-digit precision, $\zeta(3)/\pi^3$ is not algebraic of
-degree~$\le 30$ with polynomial height~$\le 10^{100}$.  That is,
-$\zeta(3)/\pi^3$ is not a root of any polynomial
-$a_0+a_1 x+\cdots+a_{30}x^{30}=0$ with $|a_i|\le 10^{100}$.
+$\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with polynomial
+height~$\le 10^{8}$.  That is, $\zeta(3)/\pi^3$ is not a root of any
+polynomial $a_0+a_1 x+\cdots+a_{30}x^{30}=0$ with $|a_i|\le 10^{8}$.
 \end{result}
 
 \noindent For context: $\zeta(2)/\pi^2=1/6$ is rational (degree~0).
@@ -244,13 +285,13 @@ recovered coefficient vector.}\label{tab:all-tests}\\
  6 & $\{1,\zeta(3),\zeta(3)^2\}$ & 3 & 2000 & $10^{12}$ & No relation \\
  7 & $\{1,\zeta(3),\zeta(3)^2,\zeta(3)^3\}$ & 4 & 2000 & $10^{10}$ & No relation \\
  8 & $\{1,\zeta(3),\zeta(3)^2,\zeta(3)^3,\zeta(3)^4\}$ & 5 & 2000 & $10^{8}$ & No relation \\
- 9 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,10\}$ & 11 & 8000 & $10^{12}$ & No relation \\
-10 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,15\}$ & 16 & 10000 & $10^{9}$ & No relation \\
-11 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,25\}$ & 26 & 6000 & $10^{200}$ & No relation \\
-12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 4500 & $10^{100}$ & No relation \\
-13 & $\{\zeta(3)^i\pi^j:i+j\le 3\}$ & 10 & 5000 & $10^{12}$ & No relation \\
-14 & $\{\zeta(3)^i\pi^j:i+j\le 4\}$ & 15 & 5000 & $10^{8}$ & No relation \\
-15 & $\{\zeta(3)^i\pi^j:i+j\le 6\}$ & 28 & 4000 & $10^{50}$ & No relation \\
+ 9 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,10\}$ & 11 & 1500 & $10^{12}$ & No relation \\
+10 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,15\}$ & 16 & 1500 & $10^{9}$ & No relation \\
+11 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,25\}$ & 26 & 1500 & $10^{10}$ & No relation \\
+12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 1500 & $10^{8}$ & No relation \\
+13 & $\{\zeta(3)^i\pi^j:i+j\le 3\}$ & 10 & 2000 & $10^{12}$ & No relation \\
+14 & $\{\zeta(3)^i\pi^j:i+j\le 4\}$ & 15 & 2000 & $10^{8}$ & No relation \\
+15 & $\{\zeta(3)^i\pi^j:i+j\le 6\}$ & 28 & 1500 & $10^{8}$ & No relation \\
 16 & $\{\zeta(3),\zeta(5),1\}$ & 3 & 3000 & $10^{12}$ & No relation \\
 17 & $\{\zeta(3),\zeta(5),\zeta(7),1\}$ & 4 & 3000 & $10^{10}$ & No relation \\
 18 & $\{\zeta(3),\zeta(5),\zeta(7),\zeta(9),1\}$ & 5 & 1500 & $10^{8}$ & No relation \\
@@ -312,10 +353,10 @@ $10^{10}$, or degree~$\le 2$ with coefficients up to~$10^{12}$
 
 \begin{result}\label{res:alg-ratio}
 $\zeta(3)/\pi^3$ is not algebraic of degree~$\le 10$ with
-height~$\le 10^{12}$ ($8{,}000$ digits), degree~$\le 15$ with
-height~$\le 10^9$ ($10{,}000$ digits), degree~$\le 25$ with
-height~$\le 10^{200}$ ($6{,}000$ digits), or degree~$\le 30$ with
-height~$\le 10^{100}$ ($4{,}500$ digits).
+height~$\le 10^{12}$, degree~$\le 15$ with height~$\le 10^9$,
+degree~$\le 25$ with height~$\le 10^{10}$, or degree~$\le 30$ with
+height~$\le 10^{8}$ (all certified at $1{,}500$-digit precision;
+see Section~\ref{sec:precision}).
 \end{result}
 
 
@@ -330,9 +371,9 @@ parameters:
 \toprule
 Total degree $d$ & Basis size & Bound & Digits \\
 \midrule
-$\le 3$ & 10 & $10^{12}$ & 5000 \\
-$\le 4$ & 15 & $10^{8}$ & 5000 \\
-$\le 6$ & 28 & $10^{50}$ & 4000 \\
+$\le 3$ & 10 & $10^{12}$ & 2000 \\
+$\le 4$ & 15 & $10^{8}$ & 2000 \\
+$\le 6$ & 28 & $10^{8}$ & 1500 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -525,9 +566,11 @@ realistic.}
 \centering
 \includegraphics[width=0.75\textwidth]{figures/bivariate_heatmap.png}
 \caption{Heatmap showing which monomials $\zeta(3)^i\pi^j$ were
-tested.  Darker cells indicate higher coefficient bounds.  All joint
-polynomials of total degree~$\le 6$ were tested, with bounds ranging
-from $10^6$ (degree~6) to $10^{12}$ (degree~3).}
+tested.  Darker cells are covered by more independent tests.  All
+joint polynomials of total degree~$\le 6$ were tested: monomials of
+total degree~$\le 3$ carry a certified coefficient bound
+of~$10^{12}$, and all others up to total degree~$6$
+carry~$10^{8}$.}
 \label{fig:heatmap}
 \end{figure}
 
@@ -570,7 +613,7 @@ Nesterenko 1996: $\{\pi,e^\pi,\Gamma(1/4)\}$ alg.\ indep.\
   \cite{Nesterenko1996}
   & $\zeta(3)$ independent from this triple ($10^{12}$) \\
 Bailey--Borwein 2005: experimental methods \cite{BaileyBorwein2005}
-  & Linear bound $10^{2000}$; height bound $10^{100}$ at degree~30 \\
+  & Linear bound $10^{2000}$; height bound $10^{8}$ at degree~30 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -595,39 +638,43 @@ the tested bounds.  Across 34 independent tests at precisions up to
 $10{,}000$ digits, every PSLQ computation returned a certified null
 result.
 
-The two principal exclusions are:
+The three principal exclusions are:
 \begin{itemize}
   \item $\zeta(3)\ne(a/b)\,\pi^2+c/d$ with coefficients up to
     $10^{2000}$;
   \item $\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with
-    height~$\le 10^{100}$.
+    height~$\le 10^{8}$;
+  \item $\zeta(3)$ and $\pi$ satisfy no joint polynomial of total
+    degree~$\le 6$ with coefficients~$\le 10^{8}$.
 \end{itemize}
-These bounds far exceed any known identity in zeta function theory.
+These bounds far exceed the coefficient sizes of every known identity
+among zeta values; for comparison, $\zeta(2)=\pi^2/6$ has
+coefficients~$1$ and~$6$.
 
 A formal proof of algebraic independence requires theoretical methods
-beyond computation.  However, our results establish that if any
-relation exists, it lives in a regime (degree~$>30$,
-coefficients~$>10^{2000}$) that has no precedent in number theory.
-
-\medskip
-\noindent\textbf{Any algebraic relation between $\zeta(3)$ and~$\pi$,
-if it exists, must involve either coefficients larger
-than~$10^{2000}$ or degree higher than~$30$.}
+beyond computation.  Our results delineate what computation can
+currently certify: any algebraic relation between $\zeta(3)$
+and~$\pi$, if one exists, must have coefficients exceeding the
+certified bound of the corresponding test in
+Table~\ref{tab:all-tests}---in the linear case, coefficients larger
+than~$10^{2000}$---or degree beyond the tested range.
 
 
 %% ====================================================================
 \section*{Acknowledgements}
 %% ====================================================================
 
-Computations were performed using mpmath~\cite{mpmath}.  The authors
-thank the developers of the PSLQ implementation therein.
+The author extends special thanks to William R.\ Adler for his
+contributions to the early stages of this project.  Computations were
+performed using mpmath~\cite{mpmath}; the author thanks the developers
+of the PSLQ implementation therein.
 
 %% ====================================================================
 \section*{Data availability}
 %% ====================================================================
 
 All code and data supporting this paper are available at
-\url{https://github.com/keithad/zeta3}.  The complete test suite can
+\url{https://github.com/keithadler/zeta3}.  The complete test suite can
 be reproduced by running \texttt{python run\_tests.py}.  Figures can be
 regenerated with \texttt{python generate\_figures.py} (requires
 matplotlib).
@@ -653,11 +700,11 @@ Table~\ref{tab:all-tests}.
 \toprule
 \# & Basis & $n$ & Digits & Bound & Time & Result \\
 \midrule
-1 & $\{\zeta(3),\pi^2,1\}$ & 3 & 10000 & $10^{2000}$ & 1.2\,s & No relation \\
-2 & $\{\zeta(3),\pi^3,1\}$ & 3 & 5000 & $10^{1000}$ & 0.40\,s & No relation \\
-3 & $\{\zeta(3),\pi^2,\pi^4,1\}$ & 4 & 2000 & $10^{10}$ & 0.24\,s & No relation \\
-4 & $\{\zeta(3),\pi^2,\pi^4,\pi^6,1\}$ & 5 & 1000 & $10^8$ & 0.11\,s & No relation \\
-5 & $\{\zeta(3),\pi^2,\ldots,\pi^{10},1\}$ & 7 & 3000 & $10^8$ & 0.83\,s & No relation \\
+1 & $\{\zeta(3),\pi^2,1\}$ & 3 & 10000 & $10^{2000}$ & 120\,s & No relation \\
+2 & $\{\zeta(3),\pi^3,1\}$ & 3 & 5000 & $10^{1000}$ & 19.5\,s & No relation \\
+3 & $\{\zeta(3),\pi^2,\pi^4,1\}$ & 4 & 2000 & $10^{10}$ & 0.25\,s & No relation \\
+4 & $\{\zeta(3),\pi^2,\pi^4,\pi^6,1\}$ & 5 & 1000 & $10^8$ & 0.19\,s & No relation \\
+5 & $\{\zeta(3),\pi^2,\ldots,\pi^{10},1\}$ & 7 & 3000 & $10^8$ & 3.9\,s & No relation \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -669,9 +716,9 @@ Table~\ref{tab:all-tests}.
 \toprule
 \# & Basis & $n$ & Digits & Bound & Time & Result \\
 \midrule
-6 & $\{1,\zeta(3),\zeta(3)^2\}$ & 3 & 2000 & $10^{12}$ & 0.11\,s & No relation \\
-7 & $\{1,\zeta(3),\ldots,\zeta(3)^3\}$ & 4 & 2000 & $10^{10}$ & 0.17\,s & No relation \\
-8 & $\{1,\zeta(3),\ldots,\zeta(3)^4\}$ & 5 & 2000 & $10^8$ & 0.25\,s & No relation \\
+6 & $\{1,\zeta(3),\zeta(3)^2\}$ & 3 & 2000 & $10^{12}$ & 0.07\,s & No relation \\
+7 & $\{1,\zeta(3),\ldots,\zeta(3)^3\}$ & 4 & 2000 & $10^{10}$ & 0.26\,s & No relation \\
+8 & $\{1,\zeta(3),\ldots,\zeta(3)^4\}$ & 5 & 2000 & $10^8$ & 0.59\,s & No relation \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -685,13 +732,13 @@ and bivariate tests.}
 \toprule
 \# & Basis & $n$ & Digits & Bound & Time & Result \\
 \midrule
- 9 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,10\}$ & 11 & 8000 & $10^{12}$ & 12.6\,s & No relation \\
-10 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,15\}$ & 16 & 10000 & $10^{9}$ & 34.8\,s & No relation \\
-11 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,25\}$ & 26 & 6000 & $10^{200}$ & 27.0\,s & No relation \\
-12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 4500 & $10^{100}$ & 29.4\,s & No relation \\
-13 & $\{\zeta(3)^i\pi^j:i{+}j\le 3\}$ & 10 & 5000 & $10^{12}$ & 4.8\,s & No relation \\
-14 & $\{\zeta(3)^i\pi^j:i{+}j\le 4\}$ & 15 & 5000 & $10^{8}$ & 11.0\,s & No relation \\
-15 & $\{\zeta(3)^i\pi^j:i{+}j\le 6\}$ & 28 & 4000 & $10^{50}$ & 18.1\,s & No relation \\
+ 9 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,10\}$ & 11 & 1500 & $10^{12}$ & 15.0\,s & No relation \\
+10 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,15\}$ & 16 & 1500 & $10^{9}$ & 60.5\,s & No relation \\
+11 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,25\}$ & 26 & 1500 & $10^{10}$ & 568\,s & No relation \\
+12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 1500 & $10^{8}$ & 1077\,s & No relation \\
+13 & $\{\zeta(3)^i\pi^j:i{+}j\le 3\}$ & 10 & 2000 & $10^{12}$ & 18.4\,s & No relation \\
+14 & $\{\zeta(3)^i\pi^j:i{+}j\le 4\}$ & 15 & 2000 & $10^{8}$ & 76.7\,s & No relation \\
+15 & $\{\zeta(3)^i\pi^j:i{+}j\le 6\}$ & 28 & 1500 & $10^{8}$ & 798\,s & No relation \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -704,18 +751,18 @@ constants.}
 \toprule
 \# & Basis & $n$ & Digits & Bound & Time & Result \\
 \midrule
-16 & $\{\zeta(3),\zeta(5),1\}$ & 3 & 3000 & $10^{12}$ & 0.15\,s & No relation \\
-17 & $\{\zeta(3),\zeta(5),\zeta(7),1\}$ & 4 & 3000 & $10^{10}$ & 0.35\,s & No relation \\
-18 & $\{\zeta(3),\zeta(5),\zeta(7),\zeta(9),1\}$ & 5 & 1500 & $10^{8}$ & 0.23\,s & No relation \\
-19 & $\{\zeta(3),\pi,e^\pi,\Gamma(1/4),1\}$ & 5 & 4000 & $10^{12}$ & 0.89\,s & No relation \\
-20 & $\{\zeta(3),\Gamma(1/4)^4/\pi^3,\pi^2,1\}$ & 4 & 4000 & $10^{12}$ & 0.53\,s & No relation \\
-21 & $\{\zeta(3),G,\pi^3,1\}$ & 4 & 3000 & $10^{10}$ & 0.48\,s & No relation \\
-22 & $\{\zeta(3),G^2,G\pi,\pi^2,G,1\}$ & 6 & 3000 & $10^{10}$ & 0.58\,s & No relation \\
-23 & $\{\zeta(3)^2,G^2,\zeta(3)G,\pi^4,\zeta(3),G,\pi^2,1\}$ & 8 & 2000 & $10^{8}$ & 0.50\,s & No relation \\
-24 & $\{\zeta(3)^2,\zeta(5)\pi,\zeta(7),\pi^6,\pi^4,1\}$ & 6 & 3000 & $10^{8}$ & 0.59\,s & No relation \\
-25 & $\{\zeta(3),\zeta(3)\pi^2,\zeta(5)\pi^2,\zeta(5),\pi^4,\pi^2,1\}$ & 7 & 3000 & $10^{8}$ & 0.77\,s & No relation \\
-26 & $\{\zeta(3)^2,\zeta(5),\pi^6,\pi^4,\pi^2,1\}$ & 6 & 3000 & $10^{10}$ & 0.50\,s & No relation \\
-27 & $\{\zeta(3),\zeta(2)\zeta(3){-}\zeta(5),\zeta(5),\pi^2,1\}$ & 5 & 1000 & $10^{8}$ & 0.10\,s & No relation \\
+16 & $\{\zeta(3),\zeta(5),1\}$ & 3 & 3000 & $10^{12}$ & 0.09\,s & No relation \\
+17 & $\{\zeta(3),\zeta(5),\zeta(7),1\}$ & 4 & 3000 & $10^{10}$ & 0.38\,s & No relation \\
+18 & $\{\zeta(3),\zeta(5),\zeta(7),\zeta(9),1\}$ & 5 & 1500 & $10^{8}$ & 0.32\,s & No relation \\
+19 & $\{\zeta(3),\pi,e^\pi,\Gamma(1/4),1\}$ & 5 & 4000 & $10^{12}$ & 2.1\,s & No relation \\
+20 & $\{\zeta(3),\Gamma(1/4)^4/\pi^3,\pi^2,1\}$ & 4 & 4000 & $10^{12}$ & 0.88\,s & No relation \\
+21 & $\{\zeta(3),G,\pi^3,1\}$ & 4 & 3000 & $10^{10}$ & 0.41\,s & No relation \\
+22 & $\{\zeta(3),G^2,G\pi,\pi^2,G,1\}$ & 6 & 3000 & $10^{10}$ & 2.2\,s & No relation \\
+23 & $\{\zeta(3)^2,G^2,\zeta(3)G,\pi^4,\zeta(3),G,\pi^2,1\}$ & 8 & 2000 & $10^{8}$ & 4.3\,s & No relation \\
+24 & $\{\zeta(3)^2,\zeta(5)\pi,\zeta(7),\pi^6,\pi^4,1\}$ & 6 & 3000 & $10^{8}$ & 2.0\,s & No relation \\
+25 & $\{\zeta(3),\zeta(3)\pi^2,\zeta(5)\pi^2,\zeta(5),\pi^4,\pi^2,1\}$ & 7 & 3000 & $10^{8}$ & 4.0\,s & No relation \\
+26 & $\{\zeta(3)^2,\zeta(5),\pi^6,\pi^4,\pi^2,1\}$ & 6 & 3000 & $10^{10}$ & 2.3\,s & No relation \\
+27 & $\{\zeta(3),\zeta(2)\zeta(3){-}\zeta(5),\zeta(5),\pi^2,1\}$ & 5 & 1000 & $10^{8}$ & 0.19\,s & No relation \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -728,12 +775,12 @@ constants.}
 \toprule
 \# & Basis & $n$ & Digits & Bound & Time & Result \\
 \midrule
-28 & $\{\zeta(3),L(E_{32},2),\pi^2,1\}$ & 4 & 2000 & $10^{10}$ & 0.25\,s & No relation \\
-29 & $\{\zeta(3),L(\chi_{-4},3),\pi^2,1\}$ & 4 & 2000 & $10^{10}$ & 0.26\,s & No relation \\
-30 & $\{\zeta(3),L(E_{32},2),L(\chi_{-4},3),\pi^2,1\}$ & 5 & 2000 & $10^{8}$ & 0.35\,s & No relation \\
-31 & $\{\zeta(3),\pi^2\ln 2,\ln^{3} 2,\ln^{2} 2,\ln 2,\pi^2,1\}$ & 7 & 4000 & $10^{11}$ & 0.89\,s & No relation \\
-32 & $\{\zeta(3),\mathrm{Li}_3(1/3),\pi^2\ln 3,\ln^{3} 3,1\}$ & 5 & 2000 & $10^{10}$ & 0.30\,s & No relation \\
-33 & $\{\zeta(3),\mathrm{Li}_3(1/4),\pi^2\ln 2,\ln^{3} 2,1\}$ & 5 & 2000 & $10^{10}$ & 0.31\,s & No relation \\
+28 & $\{\zeta(3),L(E_{32},2),\pi^2,1\}$ & 4 & 2000 & $10^{10}$ & 0.24\,s & No relation \\
+29 & $\{\zeta(3),L(\chi_{-4},3),\pi^2,1\}$ & 4 & 2000 & $10^{10}$ & 0.24\,s & No relation \\
+30 & $\{\zeta(3),L(E_{32},2),L(\chi_{-4},3),\pi^2,1\}$ & 5 & 2000 & $10^{8}$ & 0.55\,s & No relation \\
+31 & $\{\zeta(3),\pi^2\ln 2,\ln^{3} 2,\ln^{2} 2,\ln 2,\pi^2,1\}$ & 7 & 4000 & $10^{11}$ & 9.2\,s & No relation \\
+32 & $\{\zeta(3),\mathrm{Li}_3(1/3),\pi^2\ln 3,\ln^{3} 3,1\}$ & 5 & 2000 & $10^{10}$ & 0.59\,s & No relation \\
+33 & $\{\zeta(3),\mathrm{Li}_3(1/4),\pi^2\ln 2,\ln^{3} 2,1\}$ & 5 & 2000 & $10^{10}$ & 0.66\,s & No relation \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -745,7 +792,7 @@ constants.}
 \toprule
 \# & Basis & $n$ & Digits & Bound & Time & Result \\
 \midrule
-34 & $\{\zeta(3),\zeta(3,2),\zeta(2,3),\pi^5,1\}$ & 5 & 4000 & $10^{10}$ & 0.74\,s & No relation \\
+34 & $\{\zeta(3),\zeta(3,2),\zeta(2,3),\pi^5,1\}$ & 5 & 4000 & $10^{10}$ & 1.6\,s & No relation \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -758,9 +805,9 @@ recovered).}
 \toprule
 \# & Basis & $n$ & Digits & Bound & Time & Result \\
 \midrule
-35 & $\{\zeta(3),\mathrm{Li}_3(1/2),\pi^2\ln 2,\ln^{3} 2\}$ & 4 & 5000 & $10^{6}$ & 0.14\,s & $[21,-24,-2,4]$ \\
+35 & $\{\zeta(3),\mathrm{Li}_3(1/2),\pi^2\ln 2,\ln^{3} 2\}$ & 4 & 5000 & $10^{6}$ & 0.09\,s & $[21,-24,-2,4]$ \\
 36 & $\{\zeta(3),\mathrm{Li}_3(-1)\}$ & 2 & 5000 & $10^{6}$ & $<$0.01\,s & $[3,4]$ \\
-37 & $\{\zeta(3)^2,\zeta(6),\pi^6,1\}$ & 4 & 5000 & $10^{6}$ & 0.01\,s & $[0,-945,1,0]$ \\
+37 & $\{\zeta(3)^2,\zeta(6),\pi^6,1\}$ & 4 & 5000 & $10^{6}$ & 0.07\,s & $[0,-945,1,0]$ \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -817,13 +864,18 @@ from mpmath import mp, zeta, pi, pslq
 
 mp.dps = 10000
 z3 = zeta(3)
-result = pslq([z3, pi**2, mp.mpf(1)], maxcoeff=10**2000)
+result = pslq([z3, pi**2, mp.mpf(1)], maxcoeff=10**2000,
+              maxsteps=20000)
 print(result is None)  # True means no relation found
 \end{verbatim}
 
-\noindent The full suite takes approximately 5 minutes on an Apple~M3
-processor, dominated by the degree-30 algebraicity test at $4{,}500$
+\noindent The \texttt{maxsteps} argument is essential: at the default
+iteration limit PSLQ returns \texttt{None} without certifying
+anything (Section~\ref{sec:pslq}).  The norm bound crosses
+$10^{2000}$ at iteration $10{,}687$, in roughly two minutes.  The
+full suite takes approximately 55 minutes on an Apple~M3 processor,
+dominated by the degree-30 algebraicity certificate at $1{,}500$
 digits.  Source code is available at
-\url{https://github.com/keithad/zeta3}.
+\url{https://github.com/keithadler/zeta3}.
 
 \end{document}

@@ -12,6 +12,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpmath import mp, mpf, pi, zeta, pslq, floor, ln
 import os
+import sys
+
+# PSLQ norm values reach 10^2000; lift Python's int->str conversion cap
+sys.set_int_max_str_digits(2_000_000)
 
 os.makedirs('figures', exist_ok=True)
 
@@ -24,11 +28,13 @@ mp.dps = 10000
 z3 = zeta(3)
 pi2 = pi**2
 
-# Run with verbose to capture norm at each step
-import io, contextlib
+# Run with verbose to capture norm at each step. The norm crosses
+# 10^2000 around iteration ~10,700, so the step budget must allow it
+# (mpmath's default maxsteps=100 would exit long before certification).
+import io, contextlib, math
 f = io.StringIO()
 with contextlib.redirect_stdout(f):
-    pslq([z3, pi2, mpf(1)], maxcoeff=10**18, verbose=True)
+    pslq([z3, pi2, mpf(1)], maxcoeff=10**2000, maxsteps=15000, verbose=True)
 output = f.getvalue()
 
 # Parse norms from output
@@ -45,15 +51,18 @@ for line in output.strip().split('\n'):
             except ValueError:
                 pass
 
+# Norm values exceed float range (up to 10^2000), so plot log10 directly
+log_norms = [math.log10(n) for n in norms if n > 0]
+
 fig, ax = plt.subplots(figsize=(10, 6))
-ax.semilogy(range(len(norms)), norms, 'b-', linewidth=2, label='PSLQ norm bound')
-ax.axhline(y=1e18, color='r', linestyle='--', linewidth=2, label='maxcoeff = 10¹⁸')
+ax.plot(range(len(log_norms)), log_norms, 'b-', linewidth=2, label='PSLQ norm bound')
+ax.axhline(y=2000, color='r', linestyle='--', linewidth=2, label='maxcoeff = 10²⁰⁰⁰')
 ax.set_xlabel('PSLQ Iteration', fontsize=12)
-ax.set_ylabel('Norm Bound', fontsize=12)
+ax.set_ylabel('log₁₀(Norm Bound)', fontsize=12)
 ax.set_title('PSLQ Norm Growth for {ζ(3), π², 1} at 10000 digits', fontsize=14)
 ax.legend(fontsize=12)
 ax.grid(True, alpha=0.3)
-ax.set_ylim(bottom=1)
+ax.set_ylim(bottom=0)
 plt.tight_layout()
 plt.savefig('figures/pslq_norm_growth.png', dpi=150)
 plt.close()
@@ -111,22 +120,26 @@ print("  Done: figures/continued_fractions.png")
 print("Generating Figure 3: Coefficient Bound vs Precision...")
 
 # Theoretical: for basis size n, max certifiable bound ≈ 10^(D/n)
-precisions = np.array([1000, 2000, 3000, 4000, 5000, 8000, 10000, 12000])
-basis_sizes = [3, 5, 10, 15, 26]
+precisions = np.array([1000, 2000, 3000, 4000, 5000, 6000, 8000, 10000])
+basis_sizes = [3, 10, 15, 26, 31]
 
 fig, ax = plt.subplots(figsize=(10, 6))
 for n in basis_sizes:
     bounds = precisions / n
     ax.plot(precisions, bounds, 'o-', linewidth=2, markersize=6, label=f'n={n} elements')
 
-# Mark our actual tests
+# Mark our actual tests: (precision, log10 bound, basis size)
 actual_tests = [
-    (5000, 15, 3, '●'),   # {z3, pi^2, 1}
-    (8000, 12, 11, '●'),  # z3/pi^3 deg 10
-    (12000, 9, 26, '●'),  # z3/pi^3 deg 25
-    (5000, 12, 10, '●'),  # bivariate deg 3
+    (10000, 2000, 3),   # {z3, pi^2, 1} main test
+    (5000, 1000, 3),    # {z3, pi^3, 1}
+    (1500, 12, 11),     # z3/pi^3 deg 10
+    (1500, 9, 16),      # z3/pi^3 deg 15
+    (1500, 10, 26),     # z3/pi^3 deg 25
+    (1500, 8, 31),      # z3/pi^3 deg 30
+    (2000, 12, 10),     # bivariate deg 3
+    (1500, 8, 28),      # bivariate deg 6
 ]
-for prec, log_bound, n, marker in actual_tests:
+for prec, log_bound, n in actual_tests:
     ax.plot(prec, log_bound, 'r*', markersize=15, zorder=5)
 
 ax.set_xlabel('Working Precision (digits)', fontsize=12)
@@ -134,7 +147,7 @@ ax.set_ylabel('log₁₀(max certifiable coefficient)', fontsize=12)
 ax.set_title('Theoretical PSLQ Capacity: Bound ≈ 10^(D/n)', fontsize=14)
 ax.legend(fontsize=10)
 ax.grid(True, alpha=0.3)
-ax.set_xlim(0, 13000)
+ax.set_xlim(0, 11000)
 plt.tight_layout()
 plt.savefig('figures/bound_vs_precision.png', dpi=150)
 plt.close()
@@ -149,22 +162,24 @@ print("Generating Figure 4: Bivariate Test Heatmap...")
 max_deg = 7
 tested = np.zeros((max_deg, max_deg))
 
-# Mark tested regions
-# Bivariate deg ≤ 3: all i+j ≤ 3
+# Mark tested regions by how many independent tests cover each monomial.
+# Best certified bound per monomial: 10^12 for total degree <= 3 (from the
+# degree-3 test at bound 10^12), 10^8 for total degree <= 6.
+# Bivariate deg ≤ 3: covered by all three tests
 for i in range(4):
     for j in range(4):
         if i+j <= 3:
-            tested[i, j] = 3  # strong (10^12)
-# Bivariate deg ≤ 4: all i+j ≤ 4
+            tested[i, j] = 3
+# Bivariate deg ≤ 4: covered by two tests
 for i in range(5):
     for j in range(5):
         if i+j <= 4:
-            tested[i, j] = max(tested[i, j], 2)  # medium (10^8)
-# Bivariate deg ≤ 6: all i+j ≤ 6
+            tested[i, j] = max(tested[i, j], 2)
+# Bivariate deg ≤ 6: covered by the degree-6 test (bound 10^8)
 for i in range(7):
     for j in range(7):
         if i+j <= 6:
-            tested[i, j] = max(tested[i, j], 1)  # weaker (10^6)
+            tested[i, j] = max(tested[i, j], 1)
 
 fig, ax = plt.subplots(figsize=(8, 7))
 cmap = plt.cm.YlOrRd
@@ -176,14 +191,14 @@ ax.set_title('Bivariate Polynomial Tests: ζ(3)ⁱ · πʲ', fontsize=14)
 ax.set_xticks(range(max_deg))
 ax.set_yticks(range(max_deg))
 
-# Add text annotations
+# Add text annotations: best certified bound per monomial
 for i in range(max_deg):
     for j in range(max_deg):
         if tested[i, j] > 0:
-            bounds = {1: '10⁶', 2: '10⁸', 3: '10¹²'}
-            ax.text(j, i, bounds[int(tested[i, j])], ha='center', va='center', fontsize=9)
+            best = '10¹²' if i + j <= 3 else '10⁸'
+            ax.text(j, i, best, ha='center', va='center', fontsize=9)
 
-plt.colorbar(im, ax=ax, label='Strength (darker = higher bound)')
+plt.colorbar(im, ax=ax, label='Tests covering monomial (darker = more)')
 plt.tight_layout()
 plt.savefig('figures/bivariate_heatmap.png', dpi=150)
 plt.close()
