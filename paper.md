@@ -307,7 +307,7 @@ Future non-algebraic tests include continued-fraction analysis of ζ(3)/π³, nu
 
 The three headline results: ζ(3) ≠ (a/b)·π² + c/d with coefficients up to 10²⁰⁰⁰; ζ(3)/π³ is not algebraic of degree ≤ 30 with height ≤ 10⁸; and ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 with coefficients ≤ 10⁸. These bounds far exceed the coefficient sizes of every known identity among zeta values - for comparison, ζ(2) = π²/6 has coefficients 1 and 6.
 
-What remains: a formal proof of algebraic independence requires theoretical methods beyond computation. Our results delineate what computation can currently certify: any algebraic relation between ζ(3) and π, if one exists, must have coefficients exceeding the certified bound of the corresponding test in the catalogue - in the linear case, coefficients larger than 10²⁰⁰⁰ - or degree beyond the tested range. The question remains open, but the computational evidence is now extensive and, for the first time in this line of work, uniformly certified.
+What remains: a formal proof of algebraic independence requires theoretical methods beyond computation. Our results delineate what computation can currently certify: any algebraic relation between ζ(3) and π, if one exists, must have coefficients exceeding the certified bound of the corresponding test in the catalogue - in the linear case, coefficients larger than 10²⁰⁰⁰ - or degree beyond the tested range. The question remains open; the contribution of this catalogue is that every reported exclusion carries a verified certificate.
 
 ---
 
