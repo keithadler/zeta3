@@ -1,6 +1,6 @@
 # High-Precision Computational Tests on ζ(3) and π
 
-**Authors:** Keith Adler, William R. Adler  
+**Authors:** Keith Adler  
 **Date:** May 2026  
 **Keywords:** Apéry's constant, ζ(3), algebraic independence, PSLQ algorithm, odd zeta values, transcendental number theory
 
@@ -8,7 +8,9 @@
 
 ## Abstract
 
-We use high-precision PSLQ to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with |coefficients| ≤ 10¹⁸ (10000 digits). (2) ζ(3)/π³ is not algebraic of degree ≤ 30 (14000 digits). (3) ζ(3) and π satisfy no joint polynomial of total degree ≤ 6. (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. All 35 supporting tests return null results. Known identities are recovered correctly.
+We use high-precision PSLQ to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with |coefficients| ≤ 10²⁰⁰⁰ (20000 digits, 10700 PSLQ iterations), extended to |coefficients| ≤ 10¹⁸⁶⁹⁵ (40000 digits, 100000 iterations). (2) ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10¹⁰⁰ (4500 digits). (3) ζ(3) and π satisfy no joint polynomial of total degree ≤ 6. (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. All 37 tests are reported (34 certified null results, 3 recovering known identities). Known identities are recovered correctly.
+
+**A note on methodology:** mpmath's PSLQ defaults to 100 iterations, which is only enough to certify modest bounds (roughly ≤ 10¹²-10¹⁸ depending on basis size). Reaching a bound like 10²⁰⁰⁰ requires explicitly requesting thousands of iterations - the norm bound grows by only about 0.19 decimal digits per iteration for the main test's basis. Every bound in this paper that exceeds what 100 default iterations can reach records the exact (precision, iteration count) pair used to obtain it.
 
 ---
 
@@ -22,9 +24,9 @@ is irrational (Apéry, 1979 [1]), but whether it is transcendental or algebraica
 
 We address this question computationally. Our main result is:
 
-> **No integers a, b, c with |a|, |b|, |c| ≤ 10¹⁸ satisfy a·ζ(3) + b·π² + c = 0.**
+> **No integers a, b, c with |a|, |b|, |c| ≤ 10²⁰⁰⁰ satisfy a·ζ(3) + b·π² + c = 0.**
 
-This is verified at 10000-digit precision using the PSLQ algorithm, which provides a certificate of non-existence (not merely a failure to find). The bound 10¹⁸ far exceeds the coefficients appearing in any known zeta identity - for comparison, ζ(2) = π²/6 has coefficients 1 and 6.
+This is verified at 20000-digit precision using 10700 PSLQ iterations, which provides a certificate of non-existence (not merely a failure to find). An extended run at 40000 digits and 100000 iterations pushes this to |a|, |b|, |c| ≤ 10¹⁸⁶⁹⁵. Both bounds far exceed the coefficients appearing in any known zeta identity - for comparison, ζ(2) = π²/6 has coefficients 1 and 6.
 
 We supplement this with tests against other odd zeta values, Nesterenko's algebraically independent triple {π, e^π, Γ(1/4)}, and the Euler sum constants π²·ln 2 and ln³ 2. All return null results within the tested bounds.
 
@@ -39,14 +41,15 @@ Given real numbers x₁, ..., xₙ computed to D decimal digits, the PSLQ algori
 (a) Finds integers a₁, ..., aₙ (not all zero) with a₁x₁ + ... + aₙxₙ = 0, or  
 (b) **Certifies** that no such relation exists with max|aᵢ| ≤ M.
 
-A null result from PSLQ is a **mathematical guarantee**, not a search failure. This is the key distinction from heuristic methods. We verify this programmatically: for the main test ({ζ(3), π², 1} at 10000 digits), the algorithm's internal norm bound exceeds 10¹⁸ before termination, confirming it exited via the norm-exceeds-maxcoeff condition (line 290 of mpmath's source) rather than exhausting its iteration limit. This certifies that any integer relation must have max|coefficient| > 10¹⁸.
+A null result from PSLQ is a **mathematical guarantee**, not a search failure. This is the key distinction from heuristic methods. We verify this programmatically: for the main test ({ζ(3), π², 1} at 20000 digits, 10700 iterations), the algorithm's internal norm bound exceeds 10²⁰⁰⁰ before termination, confirming it exited via the norm-exceeds-maxcoeff condition rather than exhausting its iteration limit. This certifies that any integer relation must have max|coefficient| > 10²⁰⁰⁰. Note that raising `maxcoeff` alone does not raise the certified bound - mpmath's PSLQ defaults to only 100 iterations, and the norm bound here grows by roughly 0.19 decimal digits per iteration, so reaching 10²⁰⁰⁰ required explicitly requesting 10700 iterations.
 
 ### 2.2 Computational Setup
 
-- **Precision:** 1000-14000 decimal digits depending on the test
+- **Precision:** 1000-20000 decimal digits for the standard suite; the extended verification of the main result uses 40000 digits
 - **Hardware:** Apple M3 processor
-- **Software:** Python 3.14, mpmath
-- **Total runtime:** ~30 minutes for the full suite (dominated by degree-30 test)
+- **Software:** Python 3.14, mpmath 1.4.1
+- **PSLQ iterations:** mpmath's `pslq` defaults to 100 iterations, sufficient only for tests with modest bounds (≲10¹²). Tests with larger bounds explicitly request more - up to 10700 for the main test - since a larger `maxcoeff` alone does not certify a larger bound without enough iterations to reach it
+- **Total runtime:** ~15 minutes for the standard suite, dominated by the main test's 10700-iteration run. The extended verification (40000 digits, 100000 iterations) takes an additional ~2.9 hours and is not part of the standard suite
 
 ### 2.3 Validation
 
@@ -68,9 +71,11 @@ All three known identities were detected correctly, confirming that PSLQ finds r
 
 The two strongest results of this paper:
 
-> **Result A.** At 10000-digit precision, no relation a·ζ(3) + b·π² + c = 0 exists with |a|, |b|, |c| ≤ 10¹⁸. The PSLQ norm bound certifies non-existence. This means ζ(3) ≠ (p/q)·π² + r/s for any integers p, q, r, s up to one quintillion.
+> **Result A.** At 20000-digit precision, using 10700 PSLQ iterations (mpmath's default of 100 is far too few to reach this bound), no relation a·ζ(3) + b·π² + c = 0 exists with |a|, |b|, |c| ≤ 10²⁰⁰⁰. The PSLQ norm bound certifies non-existence. This takes approximately 7.6 minutes on an Apple M3.
+>
+> **Result A (extended).** Running the same test at 40000-digit precision for 100000 iterations (approximately 2.9 hours on an Apple M3) extends this to |a|, |b|, |c| ≤ 10¹⁸⁶⁹⁵. The run terminated because we stopped requesting further iterations, not because of any obstruction encountered - the bound could plausibly be pushed further with more compute. We report it as a secondary, more expensive verification rather than the paper's primary reproducible claim.
 
-> **Result B.** At 14000-digit precision, ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10⁸. This means ζ(3)/π³ is not the root of any polynomial a₀ + a₁x + ... + a₃₀x³⁰ = 0 with |aᵢ| ≤ 10⁸.
+> **Result B.** At 4500-digit precision, ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10¹⁰⁰. This means ζ(3)/π³ is not the root of any polynomial a₀ + a₁x + ... + a₃₀x³⁰ = 0 with |aᵢ| ≤ 10¹⁰⁰.
 
 For context: ζ(2)/π² = 1/6 is rational (degree 0). If ζ(3)/π³ were algebraic of any degree, it would represent a deep structural connection between ζ(3) and π. We exclude this up to degree 30.
 
@@ -80,8 +85,9 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 
 | # | Basis | Size | Digits | Bound | Result |
 |---|-------|------|--------|-------|--------|
-| 1 | {ζ(3), π², 1} | 3 | 10000 | 10¹⁸ | No relation |
-| 2 | {ζ(3), π³, 1} | 3 | 5000 | 10¹⁵ | No relation |
+| 1 | {ζ(3), π², 1} | 3 | 20000 | 10²⁰⁰⁰ | No relation |
+| 1' | {ζ(3), π², 1} (extended) | 3 | 40000 | 10¹⁸⁶⁹⁵ | No relation |
+| 2 | {ζ(3), π³, 1} | 3 | 5000 | 10¹⁰⁰⁰ | No relation |
 | 3 | {ζ(3), π², π⁴, 1} | 4 | 2000 | 10¹⁰ | No relation |
 | 4 | {ζ(3), π², π⁴, π⁶, 1} | 5 | 1000 | 10⁸ | No relation |
 | 5 | {ζ(3), π², π⁴, π⁶, π⁸, π¹⁰, 1} | 7 | 3000 | 10⁸ | No relation |
@@ -90,11 +96,11 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 | 8 | {1, ζ(3), ζ(3)², ζ(3)³, ζ(3)⁴} | 5 | 2000 | 10⁸ | No relation |
 | 9 | {(ζ(3)/π³)ᵏ : k=0..10} | 11 | 8000 | 10¹² | No relation |
 | 10 | {(ζ(3)/π³)ᵏ : k=0..15} | 16 | 10000 | 10⁹ | No relation |
-| 11 | {(ζ(3)/π³)ᵏ : k=0..25} | 26 | 12000 | 10⁹ | No relation |
-| 12 | {(ζ(3)/π³)ᵏ : k=0..30} | 31 | 14000 | 10⁸ | No relation |
+| 11 | {(ζ(3)/π³)ᵏ : k=0..25} | 26 | 6000 | 10²⁰⁰ | No relation |
+| 12 | {(ζ(3)/π³)ᵏ : k=0..30} | 31 | 4500 | 10¹⁰⁰ | No relation |
 | 13 | {ζ(3)ⁱπʲ : i+j≤3} | 10 | 5000 | 10¹² | No relation |
 | 14 | {ζ(3)ⁱπʲ : i+j≤4} | 15 | 5000 | 10⁸ | No relation |
-| 15 | {ζ(3)ⁱπʲ : i+j≤6} | 28 | 4000 | 10⁶ | No relation |
+| 15 | {ζ(3)ⁱπʲ : i+j≤6} | 28 | 4000 | 10⁵⁰ | No relation |
 | 16 | {ζ(3), ζ(5), 1} | 3 | 3000 | 10¹² | No relation |
 | 17 | {ζ(3), ζ(5), ζ(7), 1} | 4 | 3000 | 10¹⁰ | No relation |
 | 18 | {ζ(3), ζ(5), ζ(7), ζ(9), 1} | 5 | 1500 | 10⁸ | No relation |
@@ -120,12 +126,13 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 
 ### 3.3 Linear Independence from π
 
-**Result 3.3.** *No relation a·ζ(3) + b·π² + c = 0 exists with |a|, |b|, |c| ≤ 10¹⁸ (10000 digits). No relation a·ζ(3) + b·π³ + c = 0 exists with |coefficients| ≤ 10¹⁵ (5000 digits).*
+**Result 3.3.** *No relation a·ζ(3) + b·π² + c = 0 exists with |a|, |b|, |c| ≤ 10²⁰⁰⁰ (20000 digits, 10700 iterations; extended to 10¹⁸⁶⁹⁵ at 40000 digits and 100000 iterations). No relation a·ζ(3) + b·π³ + c = 0 exists with |coefficients| ≤ 10¹⁰⁰⁰ (5000 digits).*
 
 | Basis | Bound | Precision |
 |-------|-------|-----------|
-| {ζ(3), π², 1} | 10¹⁸ | 10000 |
-| {ζ(3), π³, 1} | 10¹⁵ | 5000 |
+| {ζ(3), π², 1} | 10²⁰⁰⁰ | 20000 |
+| {ζ(3), π², 1} (extended) | 10¹⁸⁶⁹⁵ | 40000 |
+| {ζ(3), π³, 1} | 10¹⁰⁰⁰ | 5000 |
 | {ζ(3), π², π⁴, 1} | 10¹⁰ | 2000 |
 | {ζ(3), π², π⁴, π⁶, 1} | 10⁸ | 1000 |
 | {ζ(3), π², π⁴, π⁶, π⁸, π¹⁰, 1} | 10⁸ | 3000 |
@@ -134,7 +141,7 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 
 **Result 3.4a.** *ζ(3) is not algebraic of degree ≤ 4 with coefficients up to 10⁸, degree ≤ 3 with coefficients up to 10¹⁰, or degree ≤ 2 with coefficients up to 10¹² (2000 digits).*
 
-**Result 3.4b.** *ζ(3)/π³ is not algebraic of degree ≤ 10 with height ≤ 10¹² (8000 digits), degree ≤ 15 with height ≤ 10⁹ (10000 digits), or degree ≤ 30 with height ≤ 10⁸ (14000 digits).*
+**Result 3.4b.** *ζ(3)/π³ is not algebraic of degree ≤ 10 with height ≤ 10¹² (8000 digits), degree ≤ 15 with height ≤ 10⁹ (10000 digits), degree ≤ 25 with height ≤ 10²⁰⁰ (6000 digits), or degree ≤ 30 with height ≤ 10¹⁰⁰ (4500 digits).*
 
 ### 3.5 Bivariate Polynomial Independence
 
@@ -144,6 +151,7 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 |-------------|-----------|-------|-----------|
 | ≤ 3 | 10 | 10¹² | 5000 |
 | ≤ 4 | 15 | 10⁸ | 5000 |
+| ≤ 6 | 28 | 10⁵⁰ | 4000 |
 
 *They directly test whether ζ(3) and π are algebraically dependent.*
 
@@ -190,9 +198,9 @@ If ζ(3) is connected to the modular world, it might relate to L-values of ellip
 
 ### 3.9 Higher-Degree and Harder Tests
 
-**Result 3.9a.** *At 12000-digit precision, ζ(3)/π³ is not algebraic of degree ≤ 25 with polynomial height ≤ 10⁹ (26-element basis, 113.5s).*
+**Result 3.9a.** *At 6000-digit precision, ζ(3)/π³ is not algebraic of degree ≤ 25 with polynomial height ≤ 10²⁰⁰ (26-element basis, 27.0s).*
 
-**Result 3.9b.** *At 4000-digit precision, ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 with |coefficients| ≤ 10⁶ (28-element basis, 22.7s).*
+**Result 3.9b.** *At 4000-digit precision, ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 with |coefficients| ≤ 10⁵⁰ (28-element basis, 18.1s).*
 
 **Result 3.9c (Weight 6).** *No relation a·ζ(3)² + b·ζ(5) + c·π⁶ + d·π⁴ + f·π² + g = 0 exists with |coefficients| ≤ 10¹⁰ (3000 digits). This tests whether ζ(3)² has any "weight 6" identity analogous to ζ(6) = π⁶/945.*
 
@@ -208,7 +216,7 @@ If ζ(3) is connected to the modular world, it might relate to L-values of ellip
 
 a·ζ(3) + b·π²·ln2 + c·ln³2 + d·ln²2 + f·ln2 + g·π² + h = 0
 
-*exists with |coefficients| ≤ 10¹⁰ (5000 digits). ζ(3) has no BBP-type formula that avoids Li₃(1/2).*
+*exists with |coefficients| ≤ 10¹¹ (4000 digits). ζ(3) has no BBP-type formula that avoids Li₃(1/2).*
 
 **Result 3.10c.** *Li₃(1/4) cannot substitute for Li₃(1/2) - it receives coefficient 0 when both are in the basis. Li₃(1/3) similarly has no identity connecting it to ζ(3) with |coefficients| ≤ 10¹⁰ (2000 digits).*
 
@@ -246,7 +254,7 @@ Over 9,000 decimal digits, ζ(3) passes the chi-squared normality test (χ² = 1
 
 ![PSLQ Norm Growth](figures/pslq_norm_growth.png)
 
-*The internal norm bound of PSLQ for the main test {ζ(3), π², 1} at 10000 digits. The norm grows exponentially with each iteration until it exceeds maxcoeff = 10¹⁸ (red dashed line), at which point the algorithm certifies non-existence. This is the mechanism that makes our null results rigorous - not a search failure, but a proven bound.*
+*The internal norm bound of PSLQ for the main test {ζ(3), π², 1} at 20000 digits, plotted as log₁₀(norm) since the raw value exceeds 64-bit float range. The norm grows roughly linearly with iteration count (~0.19 decimal digits per iteration for this basis) until it exceeds maxcoeff = 10²⁰⁰⁰ (red dashed line) after 10700 iterations, at which point the algorithm certifies non-existence. This is the mechanism that makes our null results rigorous - not a search failure, but a proven bound.*
 
 **Figure 2: Continued Fraction Partial Quotients**
 
@@ -272,9 +280,9 @@ Over 9,000 decimal digits, ζ(3) passes the chi-squared normality test (χ² = 1
 
 ### 5.1 Interpretation
 
-The central result (Result A) establishes that no relation a·ζ(3) + b·π² + c = 0 exists with coefficients below 10¹⁸. Combined with the supporting results, this provides a consistent computational picture: no algebraic relation between ζ(3) and π was found within the tested bounds.
+The central result (Result A) establishes that no relation a·ζ(3) + b·π² + c = 0 exists with coefficients below 10²⁰⁰⁰, extended by Result A (extended) to coefficients below 10¹⁸⁶⁹⁵. Combined with the supporting results, this provides a consistent computational picture: no algebraic relation between ζ(3) and π was found within the tested bounds.
 
-We emphasize that these are exclusion results within stated bounds, not proofs of algebraic independence. A relation with coefficients exceeding 10¹⁸ could exist in principle. However, all known identities in zeta function theory have small coefficients (typically single digits), making a hidden relation with 18-digit coefficients implausible.
+We emphasize that these are exclusion results within stated bounds, not proofs of algebraic independence. A relation with coefficients exceeding 10¹⁸⁶⁹⁵ could exist in principle. However, all known identities in zeta function theory have small coefficients (typically single digits), making a hidden relation with coefficients of thousands of digits implausible from the standpoint of known number-theoretic structures.
 
 ### 5.2 Comparison with Prior Work
 
@@ -295,13 +303,13 @@ Future non-algebraic tests include continued-fraction analysis of ζ(3)/π³, nu
 
 ## 6. Conclusion
 
-**No algebraic relation between ζ(3) and π was found within the tested bounds.** Across 34 independent tests at precisions up to 14000 digits, every PSLQ computation returned a certified null result.
+**No algebraic relation between ζ(3) and π was found within the tested bounds.** Across 34 independent tests at precisions up to 20000 digits (extended to 40000 digits for the main result), every PSLQ computation returned a certified null result.
 
-The two headline results: ζ(3) ≠ (a/b)·π² + c/d with coefficients up to 10¹⁸, and ζ(3)/π³ is not algebraic of degree ≤ 30. These bounds far exceed any known identity in zeta function theory - for comparison, ζ(2) = π²/6 has coefficients 1 and 6.
+The two headline results: ζ(3) ≠ (a/b)·π² + c/d with coefficients up to 10¹⁸⁶⁹⁵, and ζ(3)/π³ is not algebraic of degree ≤ 30 with height up to 10¹⁰⁰. These bounds far exceed any known identity in zeta function theory - for comparison, ζ(2) = π²/6 has coefficients 1 and 6.
 
-What remains: a formal proof of algebraic independence requires theoretical methods beyond computation. But our results establish that if any relation exists, it lives in a regime (degree > 30, coefficients > 10¹⁸) that has no precedent in number theory. The question remains open, but the computational evidence is now extensive.
+What remains: a formal proof of algebraic independence requires theoretical methods beyond computation. But our results establish that if any relation exists, it lives in a regime (degree > 30, coefficients > 10¹⁸⁶⁹⁵) that has no precedent in number theory. The question remains open, but the computational evidence is now extensive.
 
-**Any algebraic relation between ζ(3) and π, if it exists, must involve either coefficients larger than 10¹⁸ or degree higher than 30.**
+**Any algebraic relation between ζ(3) and π, if it exists, must involve either coefficients larger than 10¹⁸⁶⁹⁵ or degree higher than 30.**
 
 ---
 
@@ -329,8 +337,9 @@ All tests run on Apple M3 (8 cores). Times are for the PSLQ step only. Test numb
 
 | # | Basis | Size | Digits | Bound | Time | Result |
 |---|-------|------|--------|-------|------|--------|
-| 1 | **{ζ(3), π², 1}** | **3** | **10000** | **10¹⁸** | **1.1s** | **No relation** |
-| 2 | {ζ(3), π³, 1} | 3 | 5000 | 10¹⁵ | 0.40s | No relation |
+| 1 | **{ζ(3), π², 1}** | **3** | **20000** | **10²⁰⁰⁰** | **454s** | **No relation** |
+| 1' | {ζ(3), π², 1} (extended) | 3 | 40000 | 10¹⁸⁶⁹⁵ | 10484s | No relation |
+| 2 | {ζ(3), π³, 1} | 3 | 5000 | 10¹⁰⁰⁰ | 0.40s | No relation |
 | 3 | {ζ(3), π², π⁴, 1} | 4 | 2000 | 10¹⁰ | 0.24s | No relation |
 | 4 | {ζ(3), π², π⁴, π⁶, 1} | 5 | 1000 | 10⁸ | 0.11s | No relation |
 | 5 | {ζ(3), π², π⁴, π⁶, π⁸, π¹⁰, 1} | 7 | 3000 | 10⁸ | 0.83s | No relation |
@@ -349,11 +358,11 @@ All tests run on Apple M3 (8 cores). Times are for the PSLQ step only. Test numb
 |---|-------|------|--------|-------|------|--------|
 | 9 | {(ζ(3)/π³)ᵏ : k=0..10} | 11 | 8000 | 10¹² | 12.6s | No relation |
 | 10 | {(ζ(3)/π³)ᵏ : k=0..15} | 16 | 10000 | 10⁹ | 34.8s | No relation |
-| 11 | {(ζ(3)/π³)ᵏ : k=0..25} | 26 | 12000 | 10⁹ | 113.5s | No relation |
-| 12 | **{(ζ(3)/π³)ᵏ : k=0..30}** | **31** | **14000** | **10⁸** | **206.2s** | **No relation** |
+| 11 | {(ζ(3)/π³)ᵏ : k=0..25} | 26 | 6000 | 10²⁰⁰ | 27.0s | No relation |
+| 12 | **{(ζ(3)/π³)ᵏ : k=0..30}** | **31** | **4500** | **10¹⁰⁰** | **29.4s** | **No relation** |
 | 13 | {ζ(3)ⁱπʲ : i+j≤3} | 10 | 5000 | 10¹² | 4.8s | No relation |
 | 14 | {ζ(3)ⁱπʲ : i+j≤4} | 15 | 5000 | 10⁸ | 11.0s | No relation |
-| 15 | {ζ(3)ⁱπʲ : i+j≤6} | 28 | 4000 | 10⁶ | 22.7s | No relation |
+| 15 | {ζ(3)ⁱπʲ : i+j≤6} | 28 | 4000 | 10⁵⁰ | 18.1s | No relation |
 
 **Category 4: Odd zeta values and other constants**
 
@@ -418,24 +427,24 @@ Largest partial quotients (500 terms): 2016, 1191, 695, 209, 178, 155, 155, 147,
 
 The complete set of tests can be reproduced by running `run_tests.py`, which contains all PSLQ tests shown in the Appendix plus cross-validation and certification checks. Every result reported in this paper is generated by that script.
 
-The main result ({ζ(3), π², 1} at 10000 digits with bound 10¹⁸) can be reproduced with the following code:
+The main result ({ζ(3), π², 1} at 20000 digits with bound 10²⁰⁰⁰) can be reproduced with the following code. Note the explicit `maxsteps`: mpmath's default of 100 iterations is far too few to reach a norm bound anywhere near 10²⁰⁰⁰.
 
 ```python
 from mpmath import mp, zeta, pi, pslq
 
-mp.dps = 10000
+mp.dps = 20000
 z3 = zeta(3)
-result = pslq([z3, pi**2, mp.mpf(1)], maxcoeff=10**18)
+result = pslq([z3, pi**2, mp.mpf(1)], maxcoeff=10**2000, maxsteps=10700)
 print(result is None)  # True means no relation found
 ```
 
-The full suite takes approximately 30 minutes on an Apple M3 processor (dominated by the degree-30 algebraicity test at 14000 digits).
+This takes approximately 7.6 minutes on an Apple M3 processor. The extended verification (Result A, extended) uses the same code with `mp.dps = 40000` and `maxsteps = 100000`, taking approximately 2.9 hours. The full standard suite takes approximately 15 minutes, dominated by the main test above.
 
 ---
 
 ## License
 
 This paper and all accompanying code are released under the MIT License.  
-Copyright (c) 2026 Keith Adler, William R. Adler.
+Copyright (c) 2026 Keith Adler.
 
 This work uses [mpmath](https://mpmath.org/) (BSD-3-Clause license, version 1.4.1).

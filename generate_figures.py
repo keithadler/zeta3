@@ -11,6 +11,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from mpmath import mp, mpf, pi, zeta, pslq, floor, ln
+import math
 import os
 
 os.makedirs('figures', exist_ok=True)
@@ -20,19 +21,28 @@ os.makedirs('figures', exist_ok=True)
 # ============================================================
 print("Generating Figure 1: PSLQ Norm Growth...")
 
-mp.dps = 10000
+# maxcoeff=10**2000 needs far more than mpmath's default 100 PSLQ
+# iterations to actually reach that norm bound - empirically about 10700
+# iterations at 20000-digit precision (see run_tests.py Section 9). Raising
+# maxcoeff alone without raising maxsteps leaves the norm stuck far below
+# the target and produces a certificate that isn't actually earned.
+mp.dps = 20000
 z3 = zeta(3)
 pi2 = pi**2
+maxcoeff = 10**2000
+maxsteps = 10700
 
 # Run with verbose to capture norm at each step
 import io, contextlib
 f = io.StringIO()
 with contextlib.redirect_stdout(f):
-    pslq([z3, pi2, mpf(1)], maxcoeff=10**18, verbose=True)
+    pslq([z3, pi2, mpf(1)], maxcoeff=maxcoeff, maxsteps=maxsteps, verbose=True)
 output = f.getvalue()
 
-# Parse norms from output
-norms = []
+# Parse norms from output. The norm bound reaches ~10^2000, far beyond
+# float64 range (~1.8e308), so we track log10(norm) instead of the raw
+# integer - math.log10 handles arbitrary-precision ints without overflow.
+log_norms = []
 for line in output.strip().split('\n'):
     if 'Norm:' in line and '/' in line:
         parts = line.split('Norm:')
@@ -41,19 +51,19 @@ for line in output.strip().split('\n'):
             try:
                 norm_val = int(norm_str)
                 if norm_val > 0:
-                    norms.append(norm_val)
+                    log_norms.append(math.log10(norm_val))
             except ValueError:
                 pass
 
 fig, ax = plt.subplots(figsize=(10, 6))
-ax.semilogy(range(len(norms)), norms, 'b-', linewidth=2, label='PSLQ norm bound')
-ax.axhline(y=1e18, color='r', linestyle='--', linewidth=2, label='maxcoeff = 10¹⁸')
+ax.plot(range(len(log_norms)), log_norms, 'b-', linewidth=2, label='PSLQ norm bound')
+ax.axhline(y=math.log10(maxcoeff), color='r', linestyle='--', linewidth=2, label='maxcoeff = 10²⁰⁰⁰')
 ax.set_xlabel('PSLQ Iteration', fontsize=12)
-ax.set_ylabel('Norm Bound', fontsize=12)
-ax.set_title('PSLQ Norm Growth for {ζ(3), π², 1} at 10000 digits', fontsize=14)
+ax.set_ylabel('log₁₀(Norm Bound)', fontsize=12)
+ax.set_title('PSLQ Norm Growth for {ζ(3), π², 1} at 20000 digits', fontsize=14)
 ax.legend(fontsize=12)
 ax.grid(True, alpha=0.3)
-ax.set_ylim(bottom=1)
+ax.set_ylim(bottom=0)
 plt.tight_layout()
 plt.savefig('figures/pslq_norm_growth.png', dpi=150)
 plt.close()

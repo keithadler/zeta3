@@ -1,10 +1,10 @@
 """
 Computational Evidence for the Algebraic Independence of ζ(3) from π
 =====================================================================
-Authors: Keith Adler, William R. Adler
+Authors: Keith Adler
 Date: May 2026
 
-MIT License - Copyright (c) 2026 Keith Adler, William R. Adler
+MIT License - Copyright (c) 2026 Keith Adler
 See LICENSE file for full terms.
 
 MATHEMATICAL BACKGROUND
@@ -41,26 +41,34 @@ import time
 import sys
 
 
-def run_pslq(label, basis_vals, maxcoeff, description=""):
+def run_pslq(label, basis_vals, maxcoeff, description="", maxsteps=100):
     """
     Run PSLQ on a basis vector and report results.
-    
+
     Given basis [x₁, x₂, ..., xₙ], PSLQ searches for integers [a₁, ..., aₙ]
     with a₁x₁ + a₂x₂ + ... + aₙxₙ = 0 and max|aᵢ| < maxcoeff.
-    
+
     Returns None if no relation exists (certified), or the coefficient vector.
     The tolerance is set to 10^(-(dps-200)) to leave margin for rounding.
+    maxsteps defaults to mpmath's own default (100); tests that need a much
+    larger maxcoeff must pass a correspondingly larger maxsteps, since a
+    bigger maxcoeff alone does not make PSLQ search any further - see
+    Section 9 for the certification check that catches this mismatch.
     """
     tol = mpf(10) ** (-(mp.dps - 200))
+    # maxcoeff can be astronomically large (e.g. 10**2000); float(maxcoeff)
+    # overflows well before that, so format its order of magnitude instead
+    # of using the %e-style spec directly on the value.
+    bound_str = f"10^{len(str(maxcoeff)) - 1}"
 
     print(f"    🔬 Testing: {label}")
-    print(f"       Basis size: {len(basis_vals)} | Precision: {mp.dps} digits | Bound: {maxcoeff:.0e}")
+    print(f"       Basis size: {len(basis_vals)} | Precision: {mp.dps} digits | Bound: {bound_str} | Max steps: {maxsteps}")
     if description:
         print(f"       Question: {description}")
     sys.stdout.flush()
 
     t0 = time.time()
-    rel = pslq(basis_vals, maxcoeff=maxcoeff, tol=tol)
+    rel = pslq(basis_vals, maxcoeff=maxcoeff, tol=tol, maxsteps=maxsteps)
     elapsed = time.time() - t0
 
     if rel:
@@ -124,7 +132,7 @@ def main():
     print("  ┌──────────────────────────────────────────────────────────────────────┐")
     print("  │  🧮 PSLQ TEST SUITE                                                  │")
     print("  │  Computational Evidence for Algebraic Independence of ζ(3)            │")
-    print("  │  Keith Adler & William R. Adler, May 2026                             │")
+    print("  │  Keith Adler, May 2026                                               │")
     print("  └──────────────────────────────────────────────────────────────────────┘")
     print()
     print(f"  🖥️  Python {sys.version.split()[0]} | mpmath arbitrary-precision arithmetic")
@@ -135,7 +143,7 @@ def main():
 
     # ==================================================================
     # Precompute all constants at maximum needed precision.
-    # We compute once at 12000 digits; mpmath values retain their
+    # We compute once at 10000 digits; mpmath values retain their
     # precision even when mp.dps is later reduced for individual tests.
     #
     # Constants computed:
@@ -197,9 +205,20 @@ def main():
     # ==================================================================
     section_header(2, "Is ζ(3) a rational combination of powers of π?")
 
-    mp.dps = 10000
-    rel, t = run_pslq("a·ζ(3) + b·π² + c = 0", [z3, pi2, mpf(1)], 10**2000,
-                      "Does ζ(3) = (p/q)·π² + r/s for any p,q,r,s ≤ 10²⁰⁰⁰?")
+    # This is the paper's headline result. Reaching maxcoeff=10**2000 needs
+    # far more than mpmath's default 100 PSLQ iterations - empirically,
+    # ~10700 iterations at 20000-digit precision are required (about 6-7
+    # minutes on an Apple M3). A bigger maxcoeff alone does NOT buy a
+    # stronger certificate; see the certification check in Section 9, which
+    # would flag this test as NOT CERTIFIED if maxsteps were left at the
+    # default. z3/pi2 are recomputed here at the higher precision this test
+    # needs, rather than reusing the 10000-digit precomputed values.
+    mp.dps = 20000
+    z3_main = zeta(3)
+    pi2_main = pi ** 2
+    rel, t = run_pslq("a·ζ(3) + b·π² + c = 0", [z3_main, pi2_main, mpf(1)], 10**2000,
+                      "Does ζ(3) = (p/q)·π² + r/s for any p,q,r,s ≤ 10²⁰⁰⁰?",
+                      maxsteps=10700)
     all_results.append(("⭐ MAIN: ζ(3) vs π²", rel, t))
 
     mp.dps = 2000
@@ -590,10 +609,13 @@ def main():
 
     # ==================================================================
     # SECTION 9: Certification verification
-    # Verify that PSLQ terminates via its norm bound (line 290 of
-    # mpmath's source), NOT by exhausting maxsteps (line 295).
-    # When norm ≥ maxcoeff, the result is a rigorous certificate.
-    # When maxsteps is exhausted, it's just "gave up" (not rigorous).
+    # Verify that PSLQ terminates via its norm bound, NOT by exhausting
+    # maxsteps. When norm ≥ maxcoeff, the result is a rigorous certificate.
+    # When maxsteps is exhausted, it's just "gave up" (not rigorous) - and
+    # note that raising maxcoeff alone does nothing if maxsteps is left at
+    # mpmath's default of 100; the norm bound only grows by ~0.19 decimal
+    # digits per PSLQ iteration for this basis, so reaching a bound like
+    # 10^2000 requires on the order of 10^4 iterations, not 100.
     # ==================================================================
     section_header(9, "Certification verification (norm bound check)")
 
@@ -602,15 +624,21 @@ def main():
     print("       certificate of non-existence - not just a failure to find.")
     print()
 
-    # Run the main test with a custom wrapper that captures the norm
-    mp.dps = 10000
+    # Run the main test with a custom wrapper that captures the norm.
+    # Must match the parameters actually used in Section 2 (20000 digits,
+    # maxsteps=10700) - z3/pi2 are recomputed at that precision here since
+    # the values computed during precompute only carry 10000 digits.
+    mp.dps = 20000
+    z3_cert = zeta(3)
+    pi2_cert = pi ** 2
+    maxsteps_cert = 10700
     import io
     import contextlib
 
     # Capture verbose output to check norm bound
     f = io.StringIO()
     with contextlib.redirect_stdout(f):
-        pslq([z3, pi2, mpf(1)], maxcoeff=10**2000, verbose=True)
+        pslq([z3_cert, pi2_cert, mpf(1)], maxcoeff=10**2000, maxsteps=maxsteps_cert, verbose=True)
     output = f.getvalue()
 
     # Parse the final norm from verbose output
@@ -620,7 +648,7 @@ def main():
         norm_str = final_line[0].split('Norm bound:')[1].strip()
         norm_val = int(norm_str)
         certified = norm_val >= 10**2000
-        print(f"    📐 Main test {{ζ(3), π², 1}} at 10000 digits:")
+        print(f"    📐 Main test {{ζ(3), π², 1}} at 20000 digits, maxsteps={maxsteps_cert}:")
         print(f"       Final norm bound: ~10^{len(str(norm_val))-1}")
         print(f"       Required bound:   10^2000")
         if certified:
@@ -629,7 +657,7 @@ def main():
             print(f"       not because it ran out of iterations. This is a rigorous guarantee.")
         else:
             print(f"       ⚠️  NOT CERTIFIED: norm < maxcoeff = 10^2000")
-            print(f"       The algorithm may have hit the iteration limit.")
+            print(f"       The algorithm may have hit the iteration limit - try raising maxsteps.")
     else:
         # Check if it terminated via norm (no "Norm bound" in cancellation message means
         # it found the relation or hit a different exit)
@@ -701,8 +729,11 @@ def main():
     print("  │  ⭐ MAIN RESULT: No relation a·ζ(3) + b·π² + c = 0 exists           │")
     print("  │     with |a|, |b|, |c| ≤ 10²⁰⁰⁰ (verified at 10000 digits)         │")
     print("  │                                                                      │")
-    print("  │  🔬 34 independent null results across all test categories            │")
-    print("  │  ✅ 3 known identities correctly recovered (validation)              │")
+    box_width = 74
+    line1 = f"  │  🔬 {null_count} independent null results across all test categories"
+    line2 = f"  │  ✅ {found_count} known identities correctly recovered (validation)"
+    print(line1 + " " * max(1, box_width - len(line1) - 1) + "│")
+    print(line2 + " " * max(1, box_width - len(line2) - 1) + "│")
     print("  │  📈 Continued fractions show generic irrational behavior              │")
     print(f"  │  📊 Digit normality test passed (χ² = {chi_sq:.2f})                         │")
     print("  │                                                                      │")

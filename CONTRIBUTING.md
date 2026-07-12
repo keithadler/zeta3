@@ -21,6 +21,8 @@ rel, t = run_pslq("description of relation tested",
 all_results.append(("Short label", rel, t))
 ```
 
+**Important:** `run_pslq` defaults to mpmath's own default of 100 PSLQ iterations, which only certifies modest bounds (roughly `maxcoeff` ≲ 10¹²-10¹⁸ depending on basis size). The internal norm bound grows by a small, roughly constant number of decimal digits per iteration - for the paper's main test it's about 0.19 digits/iteration. If you raise `maxcoeff` without also passing a correspondingly larger `maxsteps=...`, PSLQ will happily return a "certified" null result that isn't actually backed by a norm bound anywhere near your requested `maxcoeff` - it silently gave up early. Always check the printed norm bound (or use the Section 9 certification pattern) against your `maxcoeff` before trusting a large bound.
+
 ## Future Computational Directions (Non-Algebraic)
 
 These directions go beyond PSLQ and may reveal structure that integer relation searches cannot detect:
