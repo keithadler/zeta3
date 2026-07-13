@@ -176,6 +176,11 @@ in this paper use bounds well within this theoretical capacity
     digits.
   \item \textbf{Hardware:} Apple M3 processor (8 cores).
   \item \textbf{Software:} Python~3.14, mpmath~1.4.1~\cite{mpmath}.
+    The results in this paper were computed on mpmath's default
+    pure-Python big-integer backend.  \texttt{gmpy2} (GMP bindings),
+    installed as an optional dependency, is auto-detected by mpmath
+    and gives a benchmarked $28.1\times$ speedup with no code changes;
+    it is recommended for any reproduction attempt.
   \item \textbf{PSLQ iterations:} mpmath's \texttt{pslq} defaults to
     100 iterations, which is sufficient only for the tests with
     modest bounds ($\lesssim 10^{12}$).  Tests with larger bounds
@@ -405,9 +410,25 @@ The degree~$\le 10$ and degree~$\le 15$ tests (Result~\ref{res:alg-ratio};
 $11$- and $16$-element bases) have not been individually re-verified
 against the same failure mode, though their more modest bounds and
 smaller bases make them less likely to be affected than the
-$26$-plus-element tests.  A compiled LLL implementation such as
-\texttt{fpylll} may scale better than mpmath's fixed-point PSLQ on
-these larger bases; we leave this to future work.
+$26$-plus-element tests.
+
+\textbf{A faster path forward (planned re-verification).}  The runs
+above used mpmath's pure-Python big-integer backend.  We have since
+benchmarked a $28.1\times$ speedup ($0.371$s/iteration vs.\
+$10.43$s/iteration on the identical degree-25 workload) from
+installing \texttt{gmpy2}, which mpmath auto-detects and uses as a
+compiled GMP backend with no code changes required.  This does not
+change the norm-growth-per-iteration rate - that is a property of the
+basis, not the backend - but it makes far more iterations affordable
+in the same wall-clock time: our ``$12$ days for a meaningful
+degree-25 bound'' estimate becomes roughly $10$ hours with this
+backend.  We plan to re-attempt all three withdrawn/inconclusive tests
+with \texttt{gmpy2} and substantially larger iteration budgets, and
+will update this paper with the results.  Until then, the withdrawals
+in this section stand as the best currently-verified status of these
+tests.  A compiled LLL implementation such as \texttt{fpylll} remains
+a longer-term alternative that may scale better still; we leave that
+comparison to future work.
 \end{remark}
 
 

@@ -39,9 +39,13 @@ All null results are certified by PSLQ's internal norm bound - not search failur
 | Degree-30 algebraicity of ζ(3)/π³ | 31 | 10¹⁰⁰ | **2** (withdrawn) | 12.3 hours |
 | Bivariate degree-6 independence | 28 | 10⁵⁰ | **0** (withdrawn, no certificate) | 10.2 hours |
 
-The degree-30 result was one of the paper's original two headline claims. None of these three bounds are usable as stated - see [`paper.md`](paper.md) §3.1, §3.5, and §3.9 for full details, including why this happens (precision is divided across too many basis dimensions for mpmath's fixed-point PSLQ to make meaningful progress in practical time) and what would be needed to fix it (either far more compute, or a different integer-relation implementation such as fpylll's LLL).
+The degree-30 result was one of the paper's original two headline claims. None of these three bounds are usable as stated - see [`paper.md`](paper.md) §3.1, §3.5, and §3.9 for full details, including why this happens (precision is divided across too many basis dimensions for mpmath's fixed-point PSLQ to make meaningful progress in practical time).
+
+**🔄 Re-verification with a faster backend is planned.** The runs above used mpmath's pure-Python big-integer backend. We've since benchmarked a **28.1× speedup** (0.371s/iteration vs. 10.43s/iteration on the identical degree-25 workload) from installing `gmpy2`, which mpmath auto-detects and uses as a compiled GMP backend - no code changes needed. This doesn't change how many decimal digits of norm bound each PSLQ iteration buys (that's a property of the basis), but it makes far more iterations affordable in the same wall-clock time: our "12 days for a meaningful degree-25 bound" estimate becomes roughly 10 hours. We plan to re-attempt all three withdrawn/inconclusive tests with `gmpy2` and larger iteration budgets, and will update this repository with the results. Until then, treat the table above as current.
 
 ## Quick Start
+
+`pip install gmpy2` is optional but strongly recommended before running the suite - mpmath will automatically use it for a large speedup with no other changes.
 
 ```bash
 git clone https://github.com/keithadler/zeta3.git

@@ -9,6 +9,8 @@ The simplest contribution is running `python run_tests.py` on your hardware and 
 - Confirmation that all null results reproduce
 - Cross-validation with other arbitrary-precision libraries (ARPREC, Sage, Julia)
 
+**Install `gmpy2` first** (`pip install gmpy2`). mpmath auto-detects it and switches to a compiled GMP backend for big-integer arithmetic with no code changes - we benchmarked a 28.1x speedup on PSLQ's inner loop from this alone. If you want to help re-attempt the three withdrawn/inconclusive large-basis tests (degree-25, degree-30, bivariate degree-6 - see README.md), this is the place to start: without it, those tests need days instead of hours.
+
 ## Extending the Test Suite
 
 To add a new PSLQ test, follow the existing pattern in `run_tests.py`:

@@ -1,2 +1,5 @@
 mpmath>=1.3.0
+gmpy2>=2.1.0  # optional but strongly recommended: mpmath auto-detects gmpy2
+              # and switches to its compiled GMP backend, giving a benchmarked
+              # 28x speedup on PSLQ's big-integer arithmetic vs. pure Python
 matplotlib>=3.5.0  # optional, for generate_figures.py only
