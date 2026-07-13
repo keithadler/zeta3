@@ -303,7 +303,8 @@ from a genuine certificate, nor that the failure rate is
 basis-size-dependent in the way quantified above.  We checked
 mpmath's issue tracker (open and closed issues mentioning
 \texttt{pslq} or \texttt{maxsteps}) and found no prior report of this
-specific ambiguity.
+specific ambiguity, and have since filed one:
+\url{https://github.com/mpmath/mpmath/issues/1130}.
 
 \textbf{This is a real gap in mpmath's implementation specifically,
 not an unsolved problem in PSLQ generally.}  The theoretical
@@ -1101,7 +1102,10 @@ widely-used implementation, not as a previously-unknown property of
 PSLQ in general - and we do not know whether it has caused unverified
 claims elsewhere, only that the same silent success (the function call
 returns cleanly and looks correct either way) would make such claims
-easy to miss.
+easy to miss.  We have since filed this as
+\texttt{mpmath/mpmath\#1130}
+(\url{https://github.com/mpmath/mpmath/issues/1130}), so it is now on
+record upstream regardless of what becomes of this paper.
 
 The practical fix we demonstrate - cross-validating any large-basis
 or high-bound PSLQ null result against LLL - costs seconds where the
