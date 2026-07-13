@@ -102,7 +102,11 @@ $\zeta(6,2)$ is not a rational combination of $\pi^8$,
 $\zeta(3)^2\pi^2$, $\zeta(3)\zeta(5)$ with coefficient norm below
 $10^{237}$, so the weight-8 space really does look 4-dimensional as
 Zagier predicts, the matching upper bound being a theorem of Terasoma
-and Deligne--Goncharov
+and Deligne--Goncharov.  Specialized MZV numerics has verified this
+structure to far higher weight (the Data Mine of
+Bl\"umlein--Broadhurst--Vermaseren reached weight~$22$); ours is an
+independent reproduction within this paper's certified-bound
+framework, not a frontier advance
 (Section~\ref{sec:zagier}).
 All 37 PSLQ tests plus the LLL cross-validation, extended-search,
 new-constant, and Zagier-dimension suites are reported with full
@@ -979,8 +983,24 @@ Zagier's conjecture false.  Our certificate excludes any such relation
 with coefficient norm below $10^{237}$.  Since $\dim\le 4$ is already
 a theorem, this is numerical evidence for the open lower-bound
 direction: the weight-$8$ space really does look $4$-dimensional.
-These are, to our knowledge, the only results in this paper that bear
-directly on the open direction of a named conjecture.
+These are the only results in this paper that bear directly on the
+open direction of a named conjecture.
+
+\textbf{Scope relative to prior MZV numerics.}  This verification is
+new to this paper, not to the field.  The Multiple Zeta Value Data
+Mine of Bl\"umlein, Broadhurst, and Vermaseren~\cite{BBV2010}
+numerically verified the conjectured dimension structure of the MZV
+algebra to far higher weight (weight~$22$, and in restricted settings
+beyond), using dedicated high-performance evaluators much more
+capable than the trigamma reduction used here.  Our weight-$10$ reach
+is nowhere near that frontier and does not claim to be.  What this
+section contributes is (a)~an independent, from-scratch reproduction
+inside this paper's certified-exclusion-bound framework, with the
+validation chain documented above, and (b)~a demonstration that the
+LLL infrastructure built for the $\zeta(3)$-$\pi$ search extends to
+structural conjecture-testing at essentially zero marginal cost.
+Readers interested in the state of the art in MZV verification should
+consult~\cite{BBV2010}, not this section.
 
 \textbf{A cautionary note from this section's own development.}  Our
 first run of these tests produced plausible-looking ``relations'' with
@@ -1199,6 +1219,13 @@ not a proof, and no number of computed digits can close the
 lower-bound direction.  But unlike the $\zeta(3)$-$\pi$ exclusions,
 where no serious conjecture predicted a relation, here the
 computation probes exactly the statement the field cannot yet prove.
+A second deflationary caveat is scope: specialized MZV numerics has
+verified this structure to far higher weight than we reach - the
+Data Mine of Bl\"umlein, Broadhurst, and
+Vermaseren~\cite{BBV2010} went to weight~$22$ - so our contribution
+is an independent reproduction within this paper's verified
+framework, not an advance of the field's frontier
+(Section~\ref{sec:zagier}).
 
 A process note: an earlier version of this manuscript claimed these
 weight-8-plus tests were infeasible without a dedicated
@@ -1231,9 +1258,10 @@ Bailey--Borwein 2005: experimental methods \cite{BaileyBorwein2005}
   & Linear bound $10^{18695}$ (degree-30 height bound withdrawn - see
   Remark~\ref{res:deg25-revised}) \\
 Zagier 1994: MZV dimension conjecture \cite{Zagier1994}
-  & Conjectured bases verified through weight~$10$ via LLL, incl.\
-  computed $\zeta(6,2)$, $\zeta(8,2)$; weight-8 targets the open
-  lower-bound direction (Section~\ref{sec:zagier}) \\
+  & Independent reproduction through weight~$10$ via LLL, incl.\
+  computed $\zeta(6,2)$, $\zeta(8,2)$ (Section~\ref{sec:zagier}); the
+  MZV Data Mine~\cite{BBV2010} reached weight~$22$ with dedicated
+  tools \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1306,9 +1334,12 @@ particular, $\zeta(6,2)$ is not a rational combination of $\pi^8$,
 $\zeta(3)^2\pi^2$, $\zeta(3)\zeta(5)$ with coefficient norm below
 $10^{237}$ - numerical evidence for the open lower-bound direction of
 Zagier's dimension conjecture at weight~$8$, where the matching upper
-bound is a theorem (Section~\ref{sec:zagier}).  Extending past
-weight~$10$ requires a depth-$\ge 3$ MZV evaluator and is the natural
-continuation (Section~\ref{sec:limitations}).
+bound is a theorem (Section~\ref{sec:zagier}).  We note the field's
+specialized tooling has verified this structure to
+weight~$22$~\cite{BBV2010}; ours is an independent in-framework
+reproduction, and extending it competitively past weight~$10$ would
+require a depth-$\ge 3$ MZV evaluator
+(Section~\ref{sec:limitations}).
 
 A formal proof of algebraic independence requires theoretical methods
 beyond computation.  Our results establish that if any algebraic
