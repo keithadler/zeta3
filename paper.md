@@ -8,7 +8,7 @@
 
 ## Abstract
 
-We use two independent integer-relation engines - mpmath's PSLQ and LLL reduction via fpylll - to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with coefficient norm ≤ 10¹⁹⁹⁹⁹ (LLL, 60000-digit scaling), independently confirmed by PSLQ to 10¹⁸⁶⁹⁵ (40000 digits, 100000 iterations). (2) ζ(3)/π³ is not algebraic of degree ≤ 100 with coefficient norm ≤ 10¹⁸³ (LLL), and specifically not of degree ≤ 30 with coefficient norm ≤ 10⁶⁴⁰. (3) ζ(3) and π satisfy no joint polynomial of total degree ≤ 12 with coefficient norm ≤ 10²⁰⁶, and specifically not of total degree ≤ 6 with coefficient norm ≤ 10⁷¹⁰ (LLL). (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. (5) A broader search across five previously-untested constant families - including Li₄(1/2), whose closed form (if any) is a known open question - finds no relations, at LLL-certified bounds of 10³⁹⁸ to 10⁹⁹⁹ (§3.9f). All 37 PSLQ tests plus the LLL cross-validation and extended-search suites are reported with full parameters; the entire LLL work (base suite + degree extension + new-family sweep) runs in about 11 minutes.
+We use two independent integer-relation engines - mpmath's PSLQ and LLL reduction via fpylll - to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with coefficient norm ≤ 10¹⁹⁹⁹⁹ (LLL, 60000-digit scaling), independently confirmed by PSLQ to 10¹⁸⁶⁹⁵ (40000 digits, 100000 iterations). (2) ζ(3)/π³ is not algebraic of degree ≤ 100 with coefficient norm ≤ 10¹⁸³ (LLL), and specifically not of degree ≤ 30 with coefficient norm ≤ 10⁶⁴⁰. (3) ζ(3) and π satisfy no joint polynomial of total degree ≤ 12 with coefficient norm ≤ 10²⁰⁶, and specifically not of total degree ≤ 6 with coefficient norm ≤ 10⁷¹⁰ (LLL). (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. (5) A broader search across five previously-untested constant families - including Li₄(1/2), whose closed form (if any) is a known open question - finds no relations, at LLL-certified bounds of 10³⁹⁸ to 10⁹⁹⁹ (§3.9f). (6) The same algebraicity/bivariate treatment given to ζ(3), extended for the first time to Catalan's constant G, to ζ(5) and ζ(7) individually, and to the Euler-Mascheroni constant γ (whose irrationality is itself unproven), likewise finds no relations (§3.9g). All 37 PSLQ tests plus the LLL cross-validation, extended-search, and new-constant suites are reported with full parameters; the entire LLL work runs in about 12 minutes.
 
 **Correction history (kept for transparency).** An earlier version of this manuscript claimed the degree-25 (10²⁰⁰), degree-30 (10¹⁰⁰), and bivariate degree-6 (10⁵⁰) bounds from PSLQ runs that never actually reached those bounds - mpmath's PSLQ defaults to 100 iterations, far too few. Honest PSLQ re-verification (8.7-12.3 hours per test) produced only trivial bounds (17, 2, and 0 respectively), and those claims were withdrawn. The LLL results above re-establish all three exclusions with far stronger, genuinely certified bounds; the withdrawal history is preserved in §3.9.
 
@@ -262,6 +262,35 @@ Section 3.9's LLL results made it practical to ask two further questions cheaply
 
 *Li₄(1/2) is of particular interest: unlike Li₂(1/2) = π²/12 − ln²(2)/2 and Li₃(1/2) (Result, §2.3), no closed form for Li₄(1/2) in terms of ζ(4), π, and ln(2) is known in the literature. Our null result adds computational weight to that open question rather than resolving it - a negative result consistent with, not proof of, its conjectured irreducibility. The new Dirichlet L-values L(χ₋₃,s) are computed via the standard Hurwitz zeta decomposition L(χ,s) = k⁻ˢ·Σᵣχ(r)ζ(s,r/k); we validated this method in-session against this paper's own established L(χ₋₄,3) = π³/32 (Result 3.7), matching to 40+ digits before using it on the untested character.*
 
+### 3.9g New Constant Families: Catalan, Higher Odd Zetas, and γ
+
+Sections 3.5-3.9 give ζ(3) the full algebraicity-and-bivariate treatment against π, but three natural extensions of the same method to other constants had not been tried: does Catalan's constant G, tested elsewhere in this paper only in linear/quadratic combinations with ζ(3) (§3.7), satisfy an algebraicity-with-π or bivariate-with-π relation the way ζ(3) does? Do ζ(5) and ζ(7) - tested only for *linear* independence from π and each other (§3.7) - satisfy the same kind of nonlinear (algebraicity or joint-polynomial) relation? And what about the Euler-Mascheroni constant γ, which appears nowhere else in this paper and whose irrationality is not even known (unlike ζ(3), proved irrational by Apéry)? [`lll_new_constants.py`](lll_new_constants.py) tests all three (70.7s total):
+
+**Result 3.9g-i (Catalan's constant).**
+
+| Test | Basis size | Bound |
+|------|-----------|-------|
+| G/π² algebraic, degree ≤ 30 | 31 | 10⁶⁴⁰·³ (7.4s) |
+| Bivariate Gⁱπʲ, total degree ≤ 8 | 45 | 10⁴³⁷·⁷ (24.9s) |
+
+**Result 3.9g-ii (ζ(5) and ζ(7) beyond linear independence).**
+
+| Test | Basis size | Bound |
+|------|-----------|-------|
+| ζ(5)/π⁵ algebraic, degree ≤ 30 | 31 | 10⁶⁴⁰·⁴ (7.5s) |
+| ζ(7)/π⁷ algebraic, degree ≤ 30 | 31 | 10⁶⁴⁰·⁴ (7.4s) |
+| Bivariate ζ(5)ⁱζ(7)ʲ, total degree ≤ 5 | 21 | 10¹⁸⁷·² (0.2s) |
+
+**Result 3.9g-iii (Euler-Mascheroni constant γ).**
+
+| Test | Basis size | Bound |
+|------|-----------|-------|
+| a·γ + b·π + c·e + d = 0 (linear) | 4 | 10⁹⁹⁹·⁴ |
+| γ algebraic, degree ≤ 5 | 6 | 10⁶⁶⁵·⁶ |
+| Trivariate γⁱπʲeᵏ, total degree ≤ 6 | 84 | 10³⁵·² (21.9s) |
+
+*None of these three families is proved irrational, let alone transcendental, by these results - the same caveat as everywhere else in this paper (an exclusion within a bound is not a proof of independence). γ is the most notable: whether γ is even irrational is a famous open problem, so a null result here carries a different flavor of uncertainty than the ζ(3) tests - we cannot rule out that γ, π, and e are related by some mechanism these polynomial/algebraicity searches are structurally unable to detect (e.g. a relation depending on γ's still-unknown arithmetic nature). We report it as one more data point, not as evidence toward γ's irrationality.*
+
 ### 3.10 BBP-Type Formula Search
 
 **Result 3.10a (Validation).** *PSLQ recovers the known identity [21, −24, −2, 4] for {ζ(3), Li₃(1/2), π²ln2, ln³2} at 5000 digits.*
@@ -479,7 +508,7 @@ Largest partial quotients (500 terms): 2016, 1191, 695, 209, 178, 155, 155, 147,
 
 ## Appendix C: Computational Reproducibility
 
-The PSLQ tests can be reproduced by running `run_tests.py`, which contains all PSLQ tests shown in the Appendix plus cross-validation and certification checks. The LLL results (including all large-basis exclusions and the 10¹⁹⁹⁹⁹ main-result cross-validation) are reproduced by running `lll_tests.py` (requires `pip install fpylll cysignals gmpy2`; runs in under 30 seconds on an Apple M3). The extended degree pushes and new-constant-family sweep (§3.9f) are reproduced by `lll_extended.py` (~11 minutes, dominated by the degree-100 and degree-12 tests). Every result reported in this paper is generated by one of those three scripts.
+The PSLQ tests can be reproduced by running `run_tests.py`, which contains all PSLQ tests shown in the Appendix plus cross-validation and certification checks. The LLL results (including all large-basis exclusions and the 10¹⁹⁹⁹⁹ main-result cross-validation) are reproduced by running `lll_tests.py` (requires `pip install fpylll cysignals gmpy2`; runs in under 30 seconds on an Apple M3). The extended degree pushes and new-constant-family sweep (§3.9f) are reproduced by `lll_extended.py` (~11 minutes, dominated by the degree-100 and degree-12 tests). The Catalan/ζ(5)/ζ(7)/γ tests (§3.9g) are reproduced by `lll_new_constants.py` (~71 seconds). Every result reported in this paper is generated by one of those four scripts.
 
 The main result ({ζ(3), π², 1} at 20000 digits with bound 10²⁰⁰⁰) can be reproduced with the following code. Note the explicit `maxsteps`: mpmath's default of 100 iterations is far too few to reach a norm bound anywhere near 10²⁰⁰⁰.
 

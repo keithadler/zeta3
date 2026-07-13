@@ -34,6 +34,8 @@ LLL bounds are on the Euclidean norm ‖a‖₂ of the coefficient vector (the m
 
 **🔬 Extended sweep (§3.9f, [`lll_extended.py`](lll_extended.py), ~11 min).** Beyond the original test families, we searched five previously-untested constant families - Li₄(1/2) (whose closed form, if any, is a known open question in the literature), five more Li₃(p/q) points, new Dirichlet L-values L(χ₋₃,2/3), Γ(1/3) and Γ(1/5)-based constants, and a 10-constant "kitchen sink" joint test - and pushed the degree-30/degree-6 tests to degree 100/degree 12 to check whether the original stopping points reflected a real obstruction or just the original 2005-era PSLQ paper's practical limits (the latter: they don't). All 12 additional tests found no relation, at LLL-certified bounds from 10³⁹⁸ to 10⁹⁹⁹.
 
+**🔭 New constant families (§3.9g, [`lll_new_constants.py`](lll_new_constants.py), ~71s).** ζ(3) got the full algebraicity/bivariate treatment against π; Catalan's constant G and the odd zetas ζ(5), ζ(7) had only been tested for *linear* independence. We extended the same treatment to them (G/π² and ζ(5)/π⁵, ζ(7)/π⁷ algebraicity to degree 30; bivariate G,π to degree 8; bivariate ζ(5),ζ(7) to degree 5), plus a first look at the Euler-Mascheroni constant γ (linear vs. π,e; algebraicity to degree 5; trivariate γ,π,e to degree 6) - γ doesn't appear anywhere else in this project, and unlike ζ(3), γ's irrationality is itself an open problem. All 8 tests: no relation, bounds 10³⁵ to 10⁹⁹⁹.
+
 **📜 Correction history (kept for transparency).** An earlier version of this repository claimed the degree-25 (10²⁰⁰), degree-30 (10¹⁰⁰), and bivariate degree-6 (10⁵⁰) bounds from PSLQ runs that never actually reached them (mpmath's PSLQ defaults to 100 iterations - far too few). Honest PSLQ re-verification (8.7-12.3 hours per test) produced only trivial bounds (17, 2, and 0 respectively), and the claims were withdrawn - mpmath's fixed-point PSLQ simply cannot make practical progress on 26+ element bases. The LLL engine then re-established all three exclusions in seconds, at bounds hundreds of orders of magnitude beyond the original claims. Full history: [`paper.md`](paper.md) §3.9.
 
 ## Quick Start
@@ -46,10 +48,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 python lll_tests.py     # LLL suite: all headline results, <30 seconds
 python run_tests.py     # PSLQ suite: ~15 minutes
-python lll_extended.py  # degree-100/degree-12 push + 5 new constant families, ~11 min
+python lll_extended.py      # degree-100/degree-12 push + 5 new constant families, ~11 min
+python lll_new_constants.py # Catalan, zeta(5)/zeta(7), and gamma tests, ~71s
 ```
 
-The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound in under 30 seconds. The PSLQ suite (~15 minutes, dominated by the main test's 10700 iterations) provides the independent cross-validation. The extended sweep ([`lll_extended.py`](lll_extended.py), ~11 min) pushes the degree-30/degree-6 tests further and searches new constant families. The extended PSLQ verification (40000 digits, 100000 iterations, ~2.9 hours) is documented separately in [`paper.md`](paper.md) and is not part of the default suite.
+The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound in under 30 seconds. The PSLQ suite (~15 minutes, dominated by the main test's 10700 iterations) provides the independent cross-validation. The extended sweep ([`lll_extended.py`](lll_extended.py), ~11 min) pushes the degree-30/degree-6 tests further and searches new constant families (Li4(1/2), more Li3 points, new L-values). [`lll_new_constants.py`](lll_new_constants.py) (~71s) extends the same algebraicity/bivariate method to Catalan's constant, zeta(5)/zeta(7), and gamma. The extended PSLQ verification (40000 digits, 100000 iterations, ~2.9 hours) is documented separately in [`paper.md`](paper.md) and is not part of the default suite.
 
 ## Repository Structure
 
@@ -61,6 +64,7 @@ The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound i
 ├── paper.md            Full research paper
 ├── lll_tests.py        LLL (fpylll) test suite - all headline results, <30s
 ├── lll_extended.py     Degree-100/degree-12 push + 5 new constant families, ~11 min
+├── lll_new_constants.py Catalan, zeta(5)/zeta(7), and gamma tests, ~71s
 ├── run_tests.py        PSLQ test suite (34 of 37 tests; 3 large-basis tests are LLL-only - see correction history above)
 ├── generate_figures.py Optional figure generation (requires matplotlib)
 └── figures/            Generated figures for the paper
