@@ -16,7 +16,7 @@ An open-source research project testing whether ζ(3) (Apéry's constant) is alg
 
 **No relation was found within the tested bounds.** Strongest results: no relation a·ζ(3) + b·π² + c = 0 exists with coefficient norm up to **10¹⁹⁹⁹⁹** (LLL; independently confirmed to 10¹⁸⁶⁹⁵ by PSLQ), and ζ(3)/π³ is not algebraic of degree ≤ 100 with coefficient norm up to **10¹⁸³**.
 
-**🎯 One positive structural result:** we numerically confirm, via LLL, that single zeta values span exactly the dimension Zagier's conjecture predicts for the multiple zeta value algebra through weight 7, and correctly predict its known breakdown at weight 8 (`paper.md` §3.9h, [`lll_zagier_check.py`](lll_zagier_check.py)).
+**🎯 One result targets an open conjecture:** we computed the depth-2 multiple zeta values ζ(6,2) and ζ(8,2) to 1100 digits (trigamma reduction, validated against three known closed forms) and verified the conjectured Zagier bases at every weight through 10. The headline: ζ(6,2) is not a rational combination of π⁸, ζ(3)²π², ζ(3)ζ(5) with coefficient norm below 10²³⁷ - numerical evidence for the *open* lower-bound direction of Zagier's dimension conjecture at weight 8 (the upper bound is a theorem; the lower bound is unproven - even ζ(5)/π⁵ irrational is open). See `paper.md` §3.9h, [`lll_zagier_check.py`](lll_zagier_check.py).
 
 ## Main Results
 
@@ -40,7 +40,7 @@ LLL bounds are on the Euclidean norm ‖a‖₂ of the coefficient vector (the m
 
 **🔭 New constant families (§3.9g, [`lll_new_constants.py`](lll_new_constants.py), ~71s).** ζ(3) got the full algebraicity/bivariate treatment against π; Catalan's constant G and the odd zetas ζ(5), ζ(7) had only been tested for *linear* independence. We extended the same treatment to them (G/π² and ζ(5)/π⁵, ζ(7)/π⁷ algebraicity to degree 30; bivariate G,π to degree 8; bivariate ζ(5),ζ(7) to degree 5), plus a first look at the Euler-Mascheroni constant γ (linear vs. π,e; algebraicity to degree 5; trivariate γ,π,e to degree 6) - γ doesn't appear anywhere else in this project, and unlike ζ(3), γ's irrationality is itself an open problem. All 8 tests: no relation, bounds 10³⁵ to 10⁹⁹⁹.
 
-**🎯 Zagier dimension check (§3.9h, [`lll_zagier_check.py`](lll_zagier_check.py), a few seconds).** A positive structural result rather than another exclusion: the number of ℚ-linearly independent monomials in {π², ζ(3), ζ(5), ζ(7), ζ(9), ζ(11)} at each weight w matches Zagier's conjectured multiple-zeta-value dimension d_w exactly for w = 0-7 and w = 9, and falls one short at w = 8 (3 vs. 4) and w = 10 (5 vs. 7) - precisely the classically known weights where a genuinely new (non-single-zeta) MZV first appears. LLL confirms the monomials we have really are independent, up to enormous bounds; we don't compute the missing weight-8 constant itself, since that needs a dedicated high-precision depth-≥3 MZV evaluator (naive summation converges far too slowly) - flagged as the most promising concrete follow-up to this project.
+**🎯 Zagier dimension check (§3.9h, [`lll_zagier_check.py`](lll_zagier_check.py), ~7 min).** Weights 0-7 re-confirm Euler's reduction theorem (single-zeta monomial counts match Zagier's d_w exactly; LLL verifies real independence). Weights 8-10 are the genuine tests: the conjectured extra generators ζ(6,2) and ζ(8,2) are depth-2 MZVs (an earlier version of this repo wrongly said depth ≥ 3 was needed), computed here to 1100 digits via the trigamma reduction ζ(a,2) = ζ(2)ζ(a) − Σψ′(m)/m^a and validated against three known closed forms before use. Results: no relation in the conjectured basis at weight 8 (bound 10²³⁷·⁷), weight 9 (10¹⁸⁹·⁸), or weight 10 (10¹³⁵·²). The weight-8 result bears on the open lower-bound direction of the conjecture. Weight 11+ genuinely needs a depth-≥3 evaluator (depth-2 MZVs of odd weight all reduce, by Euler) - that's the flagged next step.
 
 **📜 Correction history (kept for transparency).** An earlier version of this repository claimed the degree-25 (10²⁰⁰), degree-30 (10¹⁰⁰), and bivariate degree-6 (10⁵⁰) bounds from PSLQ runs that never actually reached them (mpmath's PSLQ defaults to 100 iterations - far too few). Honest PSLQ re-verification (8.7-12.3 hours per test) produced only trivial bounds (17, 2, and 0 respectively), and the claims were withdrawn - mpmath's fixed-point PSLQ simply cannot make practical progress on 26+ element bases. The LLL engine then re-established all three exclusions in seconds, at bounds hundreds of orders of magnitude beyond the original claims. Full history: [`paper.md`](paper.md) §3.9.
 
@@ -56,10 +56,10 @@ python lll_tests.py     # LLL suite: all headline results, <30 seconds
 python run_tests.py     # PSLQ suite: ~15 minutes
 python lll_extended.py      # degree-100/degree-12 push + 5 new constant families, ~11 min
 python lll_new_constants.py # Catalan, zeta(5)/zeta(7), and gamma tests, ~71s
-python lll_zagier_check.py  # Zagier dimension conjecture check, a few seconds
+python lll_zagier_check.py  # Zagier check incl. weight 8-10 with computed MZVs, ~7 min
 ```
 
-The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound in under 30 seconds. The PSLQ suite (~15 minutes, dominated by the main test's 10700 iterations) provides the independent cross-validation. The extended sweep ([`lll_extended.py`](lll_extended.py), ~11 min) pushes the degree-30/degree-6 tests further and searches new constant families (Li4(1/2), more Li3 points, new L-values). [`lll_new_constants.py`](lll_new_constants.py) (~71s) extends the same algebraicity/bivariate method to Catalan's constant, zeta(5)/zeta(7), and gamma. [`lll_zagier_check.py`](lll_zagier_check.py) (a few seconds) numerically confirms Zagier's MZV dimension conjecture through weight 7. The extended PSLQ verification (40000 digits, 100000 iterations, ~2.9 hours) is documented separately in [`paper.md`](paper.md) and is not part of the default suite.
+The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound in under 30 seconds. The PSLQ suite (~15 minutes, dominated by the main test's 10700 iterations) provides the independent cross-validation. The extended sweep ([`lll_extended.py`](lll_extended.py), ~11 min) pushes the degree-30/degree-6 tests further and searches new constant families (Li4(1/2), more Li3 points, new L-values). [`lll_new_constants.py`](lll_new_constants.py) (~71s) extends the same algebraicity/bivariate method to Catalan's constant, zeta(5)/zeta(7), and gamma. [`lll_zagier_check.py`](lll_zagier_check.py) (~7 min) verifies the conjectured Zagier bases through weight 10, computing the depth-2 generators zeta(6,2) and zeta(8,2). The extended PSLQ verification (40000 digits, 100000 iterations, ~2.9 hours) is documented separately in [`paper.md`](paper.md) and is not part of the default suite.
 
 ## Repository Structure
 
@@ -72,7 +72,7 @@ The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound i
 ├── lll_tests.py        LLL (fpylll) test suite - all headline results, <30s
 ├── lll_extended.py     Degree-100/degree-12 push + 5 new constant families, ~11 min
 ├── lll_new_constants.py Catalan, zeta(5)/zeta(7), and gamma tests, ~71s
-├── lll_zagier_check.py Zagier MZV dimension conjecture check, a few seconds
+├── lll_zagier_check.py Zagier check through weight 10 (computes zeta(6,2), zeta(8,2)), ~7 min
 ├── run_tests.py        PSLQ test suite (34 of 37 tests; 3 large-basis tests are LLL-only - see correction history above)
 ├── generate_figures.py Optional figure generation (requires matplotlib)
 └── figures/            Generated figures for the paper

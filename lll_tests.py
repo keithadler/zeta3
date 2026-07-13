@@ -55,8 +55,23 @@ from mpmath import mp, mpf, pi, zeta, polylog, ln, nstr
 
 def lll_relation(basis_vals, scale_digits):
     """Run one LLL integer-relation search. Inputs must already be
-    computed at mp.dps >= scale_digits + margin."""
+    computed at mp.dps >= scale_digits + margin.
+
+    The margin is not optional. The spurious-vector filter below
+    rejects a balanced no-relation vector because its residual
+    (~10^(c - S) for coefficient digits c and scale S) exceeds the
+    genuine-relation threshold (~10^(c - dps + 50)); that requires
+    mp.dps - scale_digits > 50 + log10(n). We enforce a hard minimum
+    gap of 100 digits because running with a thin margin silently
+    reports spurious relations as genuine (this bit us in testing:
+    a 40-digit gap returned plausible-looking 43-digit 'relations'
+    on a basis with no relation)."""
     n = len(basis_vals)
+    if mp.dps - scale_digits < 100:
+        raise ValueError(
+            f"mp.dps ({mp.dps}) must exceed scale_digits ({scale_digits}) "
+            f"by at least 100; a thin precision margin makes the "
+            f"spurious-relation filter unsound (see docstring)")
     N = mpf(10) ** scale_digits
 
     last_col = []
