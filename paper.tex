@@ -292,9 +292,33 @@ $31$ (degree-30 algebraicity) & $\sim 0.0001$ digits/iteration & $\sim 10^{0.01}
 
 A basis of $26$-$31$ elements is not exotic - the original
 manuscript's own degree-30 test used exactly this size - and yet the
-default settings certify essentially nothing on it.  Nothing in the
-function's return value or documentation flags this; the only way to
-know is to check \emph{why} it returned \texttt{None}.
+default settings certify essentially nothing on it.  mpmath's
+documentation contains one oblique acknowledgment, in a worked example
+rather than a warning attached to the \texttt{pslq} signature itself:
+``It may also be necessary to set maxsteps high to prevent a premature
+exit (before the coefficient bound has been reached).''  This
+correctly implies premature exit is possible, but does not explain
+that the resulting \texttt{None} is then silently indistinguishable
+from a genuine certificate, nor that the failure rate is
+basis-size-dependent in the way quantified above.  We checked
+mpmath's issue tracker (open and closed issues mentioning
+\texttt{pslq} or \texttt{maxsteps}) and found no prior report of this
+specific ambiguity.
+
+\textbf{This is a real gap in mpmath's implementation specifically,
+not an unsolved problem in PSLQ generally.}  The theoretical
+distinction between ``norm bound exceeded \texttt{maxcoeff}''
+(rigorous) and ``iteration budget exhausted'' (not rigorous) is well
+understood in the PSLQ literature (e.g.\ Bailey's papers on the
+algorithm~\cite{FergusonBaileyArwade1999} describe both termination
+conditions explicitly), and at
+least one other PSLQ implementation we are aware of (the Go package
+\texttt{github.com/ncw/pslq}) returns a distinct
+\texttt{ErrorIterationsExceeded} rather than conflating the two
+outcomes into a single ambiguous result.  mpmath's \texttt{pslq} does
+not make this distinction available without manually parsing
+\texttt{verbose=True} output and comparing the printed iteration count
+to \texttt{maxsteps} - which is what we now do.
 
 \textbf{The diagnostic.}  Before treating any
 \texttt{pslq(...) is None} result as a certificate, check the
@@ -1059,16 +1083,25 @@ actually been computed, because the trap it describes - raising
 \texttt{maxcoeff} without raising \texttt{maxsteps} - produces a
 \texttt{None} return indistinguishable from a genuine certificate
 unless the algorithm's termination mode is checked.  This is not
-specific to $\zeta(3)$, to this codebase, or to mpmath's particular
-implementation choices; any PSLQ-based search that reports a bound
-without recording how many iterations were needed to reach it is
-vulnerable to the same silent failure, and the severity
-(Section~\ref{sec:pitfall}) grows sharply worse, not gracefully, as
-basis size increases.  We suspect this failure mode is not unique to
-this project, and would not be surprised if it has produced unverified
-claims elsewhere in the computational number theory literature that
-have gone unnoticed for the same reason ours did: the function call
-succeeds, returns cleanly, and looks correct.
+specific to $\zeta(3)$ or to this codebase: any use of mpmath's
+\texttt{pslq} that reports a bound without recording how many
+iterations were needed to reach it is vulnerable to the same silent
+failure, and the severity (Section~\ref{sec:pitfall}) grows sharply
+worse, not gracefully, as basis size increases.  We want to be precise
+about what is and is not new here.  The theoretical distinction
+between the two termination conditions is well understood in the
+PSLQ literature, and is not a gap in the algorithm itself; at least
+one other implementation we found (the Go package
+\texttt{github.com/ncw/pslq}) already surfaces it via a distinct
+error type rather than a bare \texttt{None}.  What we did not find,
+after searching mpmath's issue tracker and documentation, is any
+existing report that mpmath's own implementation conflates the two
+outcomes in exactly this way.  We report the gap as specific to this
+widely-used implementation, not as a previously-unknown property of
+PSLQ in general - and we do not know whether it has caused unverified
+claims elsewhere, only that the same silent success (the function call
+returns cleanly and looks correct either way) would make such claims
+easy to miss.
 
 The practical fix we demonstrate - cross-validating any large-basis
 or high-bound PSLQ null result against LLL - costs seconds where the
