@@ -463,16 +463,41 @@ def main():
                       "MZV weight 5: does ζ(3) relate to ζ(3,2), ζ(2,3), π⁵?")
     all_results.append(("MZV weight 5: ζ(3,2), ζ(2,3)", rel, t))
 
-    # ζ(3)/π³ degree 25
-    mp.dps = 6000
-    ratio = z3 / pi**3
-    basis_deg25 = [ratio**k for k in range(26)]
-    rel, t = run_pslq("Σ aₖ·(ζ(3)/π³)ᵏ = 0, k=0..25",
-                      basis_deg25, 10**200,
-                      "Is ζ(3)/π³ algebraic of degree ≤ 25 with height ≤ 10²⁰⁰?")
-    all_results.append(("ζ(3)/π³ algebraic deg 25", rel, t))
+    # ζ(3)/π³ degree 25 - INCONCLUSIVE, not run in the default suite.
+    #
+    # The claim below (height <= 10**200 at 6000 digits) was never actually
+    # achieved: mpmath's pslq() defaults to 100 iterations, which - for
+    # this 26-element basis - only ever produces a norm bound of 0 (no
+    # signal at all; verified directly). We re-ran this properly at
+    # 50000 digits with maxsteps=3000 (a deliberately large iteration
+    # budget) and it took 8.7 hours to reach a norm bound of just 17 -
+    # not remotely close to 10**200. With 26 basis elements dividing up
+    # the working precision, the norm here grows ~280x slower per
+    # iteration than the 3-element main test (~0.0007 vs ~0.19 decimal
+    # digits/iteration), so reaching a meaningful bound like 10**8 would
+    # need on the order of 10**5 iterations (~12 days at this rate).
+    # See paper.md Section 3.9a / paper.tex Remark deg25-revised.
+    #
+    # We do not run this in the default suite since even the honest
+    # result is not worth 8.7 hours of every reproducer's time. To
+    # reproduce the norm~17 result yourself:
+    #
+    #   mp.dps = 50000
+    #   ratio = zeta(3) / pi**3
+    #   basis = [ratio**k for k in range(26)]
+    #   pslq(basis, maxcoeff=10**1000, tol=mpf(10)**(-(mp.dps-200)),
+    #        maxsteps=3000, verbose=True)  # ~8.7 hours
 
-    # ζ(3)/π³ degree 30
+    # ζ(3)/π³ degree 30 - CAUTION: unverified, pending re-check.
+    # The degree-25 test right above this one (26-element basis) claimed
+    # height <= 10**200 but, at mpmath's default maxsteps=100, actually
+    # only certifies norm=0; a proper 3000-iteration/50000-digit rerun
+    # took 8.7 hours to reach norm~17 (see comment above). This degree-30
+    # test (31 elements, an even larger basis) has NOT yet been re-run
+    # with adequate maxsteps and is very likely subject to the same
+    # problem - the maxcoeff=10**100 claim below is probably not real.
+    # Left as-is pending re-verification; do not cite this bound without
+    # rerunning it with maxsteps large enough to confirm norm >= maxcoeff.
     mp.dps = 4500
     ratio = z3 / pi**3
     basis_deg30 = [ratio**k for k in range(31)]
