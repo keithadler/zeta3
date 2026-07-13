@@ -8,7 +8,7 @@
 
 ## Abstract
 
-We use two independent integer-relation engines - mpmath's PSLQ and LLL reduction via fpylll - to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with coefficient norm ≤ 10¹⁹⁹⁹⁹ (LLL, 60000-digit scaling), independently confirmed by PSLQ to 10¹⁸⁶⁹⁵ (40000 digits, 100000 iterations). (2) ζ(3)/π³ is not algebraic of degree ≤ 30 with coefficient norm ≤ 10⁶⁴⁰, and not of degree ≤ 25 with coefficient norm ≤ 10⁷⁶⁵ (LLL). (3) ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 with coefficient norm ≤ 10⁷¹⁰ (LLL). (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. All 37 PSLQ tests plus the LLL cross-validation suite are reported with full parameters; the LLL suite runs in under 30 seconds.
+We use two independent integer-relation engines - mpmath's PSLQ and LLL reduction via fpylll - to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with coefficient norm ≤ 10¹⁹⁹⁹⁹ (LLL, 60000-digit scaling), independently confirmed by PSLQ to 10¹⁸⁶⁹⁵ (40000 digits, 100000 iterations). (2) ζ(3)/π³ is not algebraic of degree ≤ 100 with coefficient norm ≤ 10¹⁸³ (LLL), and specifically not of degree ≤ 30 with coefficient norm ≤ 10⁶⁴⁰. (3) ζ(3) and π satisfy no joint polynomial of total degree ≤ 12 with coefficient norm ≤ 10²⁰⁶, and specifically not of total degree ≤ 6 with coefficient norm ≤ 10⁷¹⁰ (LLL). (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. (5) A broader search across five previously-untested constant families - including Li₄(1/2), whose closed form (if any) is a known open question - finds no relations, at LLL-certified bounds of 10³⁹⁸ to 10⁹⁹⁹ (§3.9f). All 37 PSLQ tests plus the LLL cross-validation and extended-search suites are reported with full parameters; the entire LLL work (base suite + degree extension + new-family sweep) runs in about 11 minutes.
 
 **Correction history (kept for transparency).** An earlier version of this manuscript claimed the degree-25 (10²⁰⁰), degree-30 (10¹⁰⁰), and bivariate degree-6 (10⁵⁰) bounds from PSLQ runs that never actually reached those bounds - mpmath's PSLQ defaults to 100 iterations, far too few. Honest PSLQ re-verification (8.7-12.3 hours per test) produced only trivial bounds (17, 2, and 0 respectively), and those claims were withdrawn. The LLL results above re-establish all three exclusions with far stronger, genuinely certified bounds; the withdrawal history is preserved in §3.9.
 
@@ -236,6 +236,32 @@ All LLL runs use scale S = 20000 digits with constants computed at 21000 digits;
 
 **Result 3.9e (Catalan quadratic).** *No relation of the form a·ζ(3)² + b·G² + c·ζ(3)·G + d·π⁴ + f·ζ(3) + g·G + h·π² + k = 0 exists with |coefficients| ≤ 10⁸ (2000 digits, 8-element basis).*
 
+### 3.9f Extended Verification: Higher Degree and a Broader Search
+
+Section 3.9's LLL results made it practical to ask two further questions cheaply (whole sweep: 10.2 minutes, [`lll_extended.py`](lll_extended.py)): (1) does the degree-30 and degree-6 boundary reflect a real obstruction, or just where the original PSLQ-based paper happened to stop? (2) can the same LLL machinery search genuinely new territory rather than re-confirming the four relation families already tested?
+
+**Result 3.9f-i (higher degree).** *At the same scale (S = 20000 digits) used for the degree-25/30 tests above, we pushed further:*
+
+| Test | Basis size | Original stopping point | Extended result |
+|------|-----------|--------------------------|------------------|
+| ζ(3)/π³ algebraicity | 101 (degree ≤ 100) | degree ≤ 30, ‖a‖₂ ≥ 10⁶⁴⁰ | **degree ≤ 100, ‖a‖₂ ≥ 10¹⁸³·¹** (355s) |
+| Bivariate ζ(3)ⁱπʲ | 91 (total degree ≤ 12) | degree ≤ 6, ‖a‖₂ ≥ 10⁷¹⁰ | **degree ≤ 12, ‖a‖₂ ≥ 10²⁰⁶·⁴** (250s) |
+
+*The exclusion bound shrinks as degree grows (fixed precision is divided across more basis dimensions - the same phenomenon that broke mpmath's PSLQ, just far less severely for LLL), but even at degree 100 the bound (10¹⁸³) still exceeds the original manuscript's degree-30 claim (10¹⁰⁰) while excluding more than 3× the degree. The original degree ≤ 30 / degree ≤ 6 stopping points reflected the 2005-era PSLQ literature's practical limits, not a mathematical obstruction.*
+
+**Result 3.9f-ii (broader search: new constant families).** *We extended the search to five families not tested elsewhere in this paper, all confirmed algebraically independent (or, for Li₄(1/2), unrelated to the tested basis) within LLL-certified bounds of 10³⁹⁸ to 10⁹⁹⁹:*
+
+| Test | Basis | Bound |
+|------|-------|-------|
+| Li₄(1/2) vs {π⁴, ln⁴2, π²ln²2, ζ(3)ln2} | 5 | 10⁷⁹⁹ |
+| Li₃(1/5), Li₃(1/6), Li₃(1/7), Li₃(2/3), Li₃(3/4) vs {ζ(3), π²ln(x), ln³(x), 1} | 5 each | 10⁷⁹⁹ |
+| ζ(3) vs L(χ₋₃,2), L(χ₋₃,3), π² | 5 | 10⁷⁹⁹ |
+| ζ(3) vs Γ(1/3)⁶/π⁴, π² | 4 | 10⁹⁹⁹ |
+| ζ(3) vs Γ(1/5), Γ(2/5), π, √5 | 6 | 10⁶⁶⁵ |
+| Kitchen sink: {ζ(3), ζ(5), ζ(7), π, ln2, G, Li₃(1/2), e^π, Γ(1/4), 1} | 10 | 10³⁹⁸ |
+
+*Li₄(1/2) is of particular interest: unlike Li₂(1/2) = π²/12 − ln²(2)/2 and Li₃(1/2) (Result, §2.3), no closed form for Li₄(1/2) in terms of ζ(4), π, and ln(2) is known in the literature. Our null result adds computational weight to that open question rather than resolving it - a negative result consistent with, not proof of, its conjectured irreducibility. The new Dirichlet L-values L(χ₋₃,s) are computed via the standard Hurwitz zeta decomposition L(χ,s) = k⁻ˢ·Σᵣχ(r)ζ(s,r/k); we validated this method in-session against this paper's own established L(χ₋₄,3) = π³/32 (Result 3.7), matching to 40+ digits before using it on the untested character.*
+
 ### 3.10 BBP-Type Formula Search
 
 **Result 3.10a (Validation).** *PSLQ recovers the known identity [21, −24, −2, 4] for {ζ(3), Li₃(1/2), π²ln2, ln³2} at 5000 digits.*
@@ -453,7 +479,7 @@ Largest partial quotients (500 terms): 2016, 1191, 695, 209, 178, 155, 155, 147,
 
 ## Appendix C: Computational Reproducibility
 
-The PSLQ tests can be reproduced by running `run_tests.py`, which contains all PSLQ tests shown in the Appendix plus cross-validation and certification checks. The LLL results (including all large-basis exclusions and the 10¹⁹⁹⁹⁹ main-result cross-validation) are reproduced by running `lll_tests.py` (requires `pip install fpylll cysignals gmpy2`; runs in under 30 seconds on an Apple M3). Every result reported in this paper is generated by one of those two scripts.
+The PSLQ tests can be reproduced by running `run_tests.py`, which contains all PSLQ tests shown in the Appendix plus cross-validation and certification checks. The LLL results (including all large-basis exclusions and the 10¹⁹⁹⁹⁹ main-result cross-validation) are reproduced by running `lll_tests.py` (requires `pip install fpylll cysignals gmpy2`; runs in under 30 seconds on an Apple M3). The extended degree pushes and new-constant-family sweep (§3.9f) are reproduced by `lll_extended.py` (~11 minutes, dominated by the degree-100 and degree-12 tests). Every result reported in this paper is generated by one of those three scripts.
 
 The main result ({ζ(3), π², 1} at 20000 digits with bound 10²⁰⁰⁰) can be reproduced with the following code. Note the explicit `maxsteps`: mpmath's default of 100 iterations is far too few to reach a norm bound anywhere near 10²⁰⁰⁰.
 
