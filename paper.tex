@@ -45,33 +45,29 @@
 \maketitle
 
 \begin{abstract}
-We employ the PSLQ integer relation algorithm at high precision to search
-systematically for algebraic relations between $\zeta(3)$ and~$\pi$.
+We employ two independent integer-relation engines - mpmath's PSLQ and
+LLL lattice reduction via fpylll - to search systematically for
+algebraic relations between $\zeta(3)$ and~$\pi$.
 Our principal results are:
 (1)~no relation $a\,\zeta(3) + b\,\pi^2 + c = 0$ exists with
-$|a|,|b|,|c| \le 10^{2000}$ (verified at $20{,}000$-digit precision,
-$10{,}700$ PSLQ iterations), extended to $|a|,|b|,|c|\le 10^{18695}$ at
-$40{,}000$ digits and $100{,}000$ iterations;
-(2)~the claim that $\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$
-with polynomial height~$\le 10^{100}$ ($4{,}500$ digits) is
-\textbf{withdrawn}: re-verification ($12.3$ hours of compute) produced
-a certified norm bound of only $2$, not $10^{100}$ - see
-Remark~\ref{res:deg25-revised};
-(3)~the claim that $\zeta(3)$ and~$\pi$ satisfy no joint polynomial of
-total degree~$\le 6$ is likewise \textbf{withdrawn}: re-verification
-produced a certified norm bound of exactly $0$ (no certificate at all;
-see Remark~\ref{res:biv6-withdrawn});
+coefficient norm $\le 10^{19999}$ (LLL, $60{,}000$-digit scaling),
+independently confirmed by PSLQ to $10^{18695}$ ($40{,}000$ digits,
+$100{,}000$ iterations);
+(2)~$\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with
+coefficient norm~$\le 10^{640}$, nor of degree~$\le 25$ with
+coefficient norm~$\le 10^{765}$ (LLL);
+(3)~$\zeta(3)$ and~$\pi$ satisfy no joint polynomial of total
+degree~$\le 6$ with coefficient norm~$\le 10^{710}$ (LLL);
 (4)~no linear relation connects $\zeta(3)$, $\zeta(3,2)$, $\zeta(2,3)$,
 and~$\pi^5$ at weight~5.
-Of~37 PSLQ tests, 31 yield certified null results, 3 recover known
-identities, and three (degree-25 and degree-30 algebraicity of
-$\zeta(3)/\pi^3$, and bivariate degree-6 independence) are
-inconclusive or withdrawn - large basis size ($26$+ elements)
-prevented PSLQ from reaching a meaningful certified bound in practical
-time (Remark~\ref{res:deg25-revised}
-and~\ref{res:biv6-withdrawn}).  All tests are reported with full
-parameters.  The accompanying code is publicly available for
-independent verification.
+All 37 PSLQ tests plus the LLL cross-validation suite are reported
+with full parameters; the LLL suite runs in under 30 seconds.
+An earlier version of this manuscript claimed the degree-25, degree-30
+and bivariate degree-6 bounds from PSLQ runs that never actually
+reached them; those claims were withdrawn after honest re-verification
+and are now superseded by the far stronger LLL certificates above.
+The correction history is preserved in the text
+(Remark~\ref{res:deg25-revised}) for transparency.
 \end{abstract}
 
 \noindent\textbf{MSC 2020:} 11Y60 (primary); 11J72, 11M06, 11J91 (secondary).
@@ -158,6 +154,40 @@ For the main test ($\{\zeta(3),\pi^2,1\}$ at $20{,}000$ digits,
 $10{,}700$ iterations), the internal norm bound exceeds~$10^{2000}$
 before termination, confirming exit via the norm-exceeds-maxcoeff
 condition rather than exhaustion of the iteration limit.
+
+\subsection{LLL reduction: a second, independent engine}\label{sec:lll}
+
+We additionally implement integer relation detection via LLL lattice
+reduction using fpylll (the compiled fplll library, as used by
+SageMath).  Given $x_1,\ldots,x_n$ at $D$ digits, we reduce the
+$n\times(n{+}1)$ lattice $[\,I_n \mid \mathrm{round}(N x_i)\,]$ with
+$N = 10^S$, $S < D$.  Any integer relation makes the corresponding
+lattice vector short ($\sim\|a\|$ rather than the generic
+$\sim 10^{S/n}$), so LLL finds it.  Conversely, fplll's guarantee that
+its output is LLL-reduced yields a certified exclusion: any relation
+must satisfy
+\[
+  \|a\|_2 \;\ge\; \frac{\|b_1\|}{2^{(n-1)/2}\sqrt{1+n/4}},
+\]
+where $b_1$ is the shortest reduced vector.  This bounds the Euclidean
+norm of the coefficient vector; the corresponding bound on
+$\max|a_i|$ is smaller by at most $\sqrt{n}$ (under one order of
+magnitude for every basis in this paper).
+
+One implementation caution, documented in \texttt{lll\_tests.py}:
+when no relation exists, LLL returns ``balanced'' vectors whose
+residual $\sum a_i x_i \approx |{\rm last\ coord}|/N$ is small
+automatically and does \emph{not} indicate a relation.  A genuine
+relation is distinguished by its residual being zero to the full
+precision of the inputs ($\le \|a\|_1\cdot 10^{-D}$); every candidate
+is verified against that threshold, with inputs computed $1{,}000$
+digits above the scaling~$S$.
+
+The LLL engine is dramatically faster than mpmath's PSLQ on this
+workload - the entire cross-validation suite runs in under 30~seconds,
+versus 30-plus hours for the equivalent PSLQ re-verification runs -
+and, being an independent algorithm in an independent implementation,
+it cross-validates every PSLQ result it reproduces.
 
 \subsection{Theoretical capacity}\label{sec:capacity}
 
@@ -251,28 +281,32 @@ report it as a secondary, more expensive verification rather than the
 paper's primary reproducible claim.
 \end{result}
 
-\begin{result}[Non-algebraicity of $\zeta(3)/\pi^3$ -
-\textbf{withdrawn}]\label{res:B}
-The original manuscript claimed that at $4{,}500$-digit precision,
-$\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with polynomial
-height~$\le 10^{100}$.  This was never actually achieved: mpmath's
-PSLQ defaults to $100$ iterations, and a run reaching height $10^{100}$
-was never completed.  We re-ran this test properly - at $50{,}000$-digit
-precision using a full $3{,}000$-iteration budget ($12.3$ hours of
-compute) - and the certified norm bound reached only $2$: we can only
-certify the absence of a degree-30 relation with coefficients~$\le 2$,
-a completely uninteresting bound.  This is the same large-basis
-dilution problem affecting the degree-25 and bivariate degree-6 tests
-(Remarks~\ref{res:deg25-revised} and~\ref{res:biv6-withdrawn}), here
-at its worst since the $31$-element basis is the largest in this
-paper.  We withdraw this claim.
+\begin{result}[LLL cross-validation]\label{res:A-lll}
+The independent LLL engine (Section~\ref{sec:lll}) certifies
+$\|a\|_2 \ge 10^{19999}$ for the same basis (scale $60{,}000$ digits,
+$0.23$s of reduction time after $3.7$s of constant computation).  Two
+independent algorithms in independent implementations thus agree: no
+relation $a\,\zeta(3)+b\,\pi^2+c=0$ exists with coefficients below at
+least $10^{18695}$.
+\end{result}
+
+\begin{result}[Non-algebraicity of $\zeta(3)/\pi^3$, re-established
+via LLL]\label{res:B}
+$\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with coefficient
+norm $\|a\|_2 \le 10^{640}$ (LLL, scale $20{,}000$ digits, $7.6$s),
+nor of degree~$\le 25$ with $\|a\|_2 \le 10^{765}$ ($4.4$s).
+\emph{History:} an earlier version claimed degree~$\le 30$ at height
+$10^{100}$ from a PSLQ run that never reached that bound; honest PSLQ
+re-verification produced only a trivial bound of $2$ after $12.3$
+hours (the $31$-element basis dilutes mpmath's PSLQ beyond practical
+use - Remark~\ref{res:deg25-revised}), and the claim was withdrawn
+before being re-established, far more strongly, by the LLL engine.
 \end{result}
 
 \noindent For context: $\zeta(2)/\pi^2=1/6$ is rational (degree~0).
-Whether $\zeta(3)/\pi^3$ is algebraic of any degree remains open; the
-tests in this paper only meaningfully constrain it at
-degree~$\le 10$ and degree~$\le 15$ (Section~\ref{sec:algebraicity}),
-not degree~$\le 30$ as originally claimed.
+If $\zeta(3)/\pi^3$ were algebraic of any degree, it would represent a
+deep structural connection between $\zeta(3)$ and~$\pi$.  We now
+exclude this up to degree~30 with genuinely certified bounds.
 
 
 \subsection{Complete test catalogue}\label{sec:catalogue}
@@ -375,8 +409,14 @@ $10^{10}$, or degree~$\le 2$ with coefficients up to~$10^{12}$
 
 \begin{result}\label{res:alg-ratio}
 $\zeta(3)/\pi^3$ is not algebraic of degree~$\le 10$ with
-height~$\le 10^{12}$ ($8{,}000$ digits), or degree~$\le 15$ with
-height~$\le 10^9$ ($10{,}000$ digits).
+height~$\le 10^{12}$ (PSLQ, $8{,}000$ digits; LLL cross-validation
+strengthens this to $\|a\|_2 \le 10^{1816}$), or degree~$\le 15$ with
+height~$\le 10^9$ (PSLQ, $10{,}000$ digits; LLL:
+$\|a\|_2 \le 10^{1247}$).  Via LLL, additionally not of
+degree~$\le 25$ with $\|a\|_2 \le 10^{765}$ or degree~$\le 30$ with
+$\|a\|_2 \le 10^{640}$ (Result~\ref{res:B};
+Remark~\ref{res:deg25-revised} records the history of these last
+two).
 \end{result}
 
 \begin{remark}[Degree-25 and degree-30: revised]\label{res:deg25-revised}
@@ -406,29 +446,32 @@ certified norm bound reached only $2$.  This $31$-element basis is the
 largest in the paper and shows the worst dilution of the three
 affected tests.  We \textbf{withdraw} this claim entirely.
 
-The degree~$\le 10$ and degree~$\le 15$ tests (Result~\ref{res:alg-ratio};
-$11$- and $16$-element bases) have not been individually re-verified
-against the same failure mode, though their more modest bounds and
-smaller bases make them less likely to be affected than the
-$26$-plus-element tests.
+\textbf{Superseded: all three exclusions re-established via LLL.}
+The withdrawn/inconclusive statuses above record the honest state of
+these tests under mpmath's PSLQ and are preserved for transparency.
+They are now superseded: the LLL engine (Section~\ref{sec:lll},
+\texttt{lll\_tests.py}) certifies all three exclusions in seconds, at
+bounds far beyond both the original claims and anything PSLQ achieved
+in 30-plus hours of re-verification:
 
-\textbf{A faster path forward (planned re-verification).}  The runs
-above used mpmath's pure-Python big-integer backend.  We have since
-benchmarked a $28.1\times$ speedup ($0.371$s/iteration vs.\
-$10.43$s/iteration on the identical degree-25 workload) from
-installing \texttt{gmpy2}, which mpmath auto-detects and uses as a
-compiled GMP backend with no code changes required.  This does not
-change the norm-growth-per-iteration rate - that is a property of the
-basis, not the backend - but it makes far more iterations affordable
-in the same wall-clock time: our ``$12$ days for a meaningful
-degree-25 bound'' estimate becomes roughly $10$ hours with this
-backend.  We plan to re-attempt all three withdrawn/inconclusive tests
-with \texttt{gmpy2} and substantially larger iteration budgets, and
-will update this paper with the results.  Until then, the withdrawals
-in this section stand as the best currently-verified status of these
-tests.  A compiled LLL implementation such as \texttt{fpylll} remains
-a longer-term alternative that may scale better still; we leave that
-comparison to future work.
+\begin{center}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Test & Original claim & Honest PSLQ (hours) & LLL (seconds) \\
+\midrule
+Degree-25 algebraicity & $10^{200}$ & $17$ ($8.7$h) & $\|a\|_2\ge 10^{765}$ ($4.4$s) \\
+Degree-30 algebraicity & $10^{100}$ & $2$ ($12.3$h) & $\|a\|_2\ge 10^{640}$ ($7.6$s) \\
+Bivariate degree-6 & $10^{50}$ & $0$ ($10.2$h) & $\|a\|_2\ge 10^{710}$ ($5.5$s) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+All LLL runs use scale $S = 20{,}000$ digits with constants computed
+at $21{,}000$ digits.  The degree~$\le 10$ and degree~$\le 15$ tests
+are likewise LLL-confirmed (Result~\ref{res:alg-ratio}), giving
+two-engine cross-validation at those degrees.  An earlier interim note
+here proposed re-attempting these tests with the $28\times$-faster
+\texttt{gmpy2} PSLQ backend; the LLL approach made that unnecessary.
 \end{remark}
 
 
@@ -441,28 +484,32 @@ parameters:
 \begin{center}
 \begin{tabular}{@{}cccc@{}}
 \toprule
-Total degree $d$ & Basis size & Bound & Digits \\
+Total degree $d$ & Basis size & PSLQ bound & LLL bound ($\|a\|_2$) \\
 \midrule
-$\le 3$ & 10 & $10^{12}$ & 5000 \\
-$\le 4$ & 15 & $10^{8}$ & 5000 \\
-$\le 6$ & 28 & \emph{withdrawn} & --- \\
+$\le 3$ & 10 & $10^{12}$ (5000 digits) & $10^{1998}$ \\
+$\le 4$ & 15 & $10^{8}$ (5000 digits) & $10^{1331}$ \\
+$\le 6$ & 28 & --- (see Remark~\ref{res:biv6-withdrawn}) & $10^{710}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 These tests directly address whether $\zeta(3)$ and~$\pi$ are
-algebraically dependent.
+algebraically dependent.  The degree~$\le 3$ and $\le 4$ rows are
+confirmed by both engines; the degree~$\le 6$ exclusion is from the
+LLL engine only.
 \end{result}
 
-\begin{remark}[Degree-6: withdrawn]\label{res:biv6-withdrawn}
-The degree~$\le 6$ claim above (height~$\le 10^{50}$ at $4{,}000$
-digits) is withdrawn.  mpmath's default \texttt{maxsteps}$=100$ never
-actually reaches that bound for this $28$-element basis; we re-ran it
-properly with \texttt{maxsteps}$=3000$ at $50{,}000$ digits ($10.2$
-hours of compute) and the certified norm bound was exactly $0$ - no
-certificate of any kind, not merely a weaker one.  This is the same
-large-basis dilution problem as the degree-25 algebraicity test
-(Remark~\ref{res:deg25-revised}), evidently worse here.  This claim
-should not be cited.
+\begin{remark}[Degree-6: PSLQ history]\label{res:biv6-withdrawn}
+The original degree~$\le 6$ PSLQ claim (height~$\le 10^{50}$ at
+$4{,}000$ digits) was withdrawn: mpmath's default
+\texttt{maxsteps}$=100$ never actually reaches that bound for this
+$28$-element basis, and an honest re-run with
+\texttt{maxsteps}$=3000$ at $50{,}000$ digits ($10.2$ hours of
+compute) produced a certified norm bound of exactly $0$ - no
+certificate of any kind.  This is the same large-basis dilution
+problem as the degree-25 algebraicity test
+(Remark~\ref{res:deg25-revised}), evidently worse here.  The exclusion
+now rests on the LLL certificate ($\|a\|_2 \ge 10^{710}$, $5.5$s),
+which supersedes the withdrawn PSLQ claim.
 \end{remark}
 
 \subsection{Multiple zeta values at weight~5}\label{sec:mzv}
@@ -725,41 +772,40 @@ low-complexity relations.
 %% ====================================================================
 
 No algebraic relation between $\zeta(3)$ and~$\pi$ was found within
-the bounds we were able to actually verify.  Across 31 of 34
-independent tests, at precisions up to $20{,}000$ digits (extended to
-$40{,}000$ digits for Result~\ref{res:A-extended}), every PSLQ
-computation returned a certified null result.  Three tests involving
-large bases ($26$+ elements) do not: the degree-25 and degree-30
-algebraicity tests are withdrawn or inconclusive
-(Remark~\ref{res:deg25-revised}), and the bivariate degree-6
-independence test is withdrawn entirely, having produced no
-certificate at all (Remark~\ref{res:biv6-withdrawn}).  Notably, the
-degree-30 result was one of this paper's original two headline claims
-and does not survive re-verification.
+the tested bounds, now verified by two independent engines.  Every
+exclusion in this paper is certified either by both mpmath's PSLQ and
+fpylll's LLL (where PSLQ could reach a meaningful bound) or by LLL
+alone (the three large-basis tests where PSLQ cannot make practical
+progress - Remark~\ref{res:deg25-revised}).
 
-The one remaining principal exclusion is:
+The principal exclusions are:
 \begin{itemize}
-  \item $\zeta(3)\ne(a/b)\,\pi^2+c/d$ with coefficients up to
-    $10^{18695}$.
+  \item $\zeta(3)\ne(a/b)\,\pi^2+c/d$ with coefficient norm up to
+    $10^{19999}$ (LLL; PSLQ independently confirms $10^{18695}$);
+  \item $\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with
+    coefficient norm up to $10^{640}$;
+  \item $\zeta(3)$ and $\pi$ satisfy no joint polynomial of total
+    degree~$\le 6$ with coefficient norm up to $10^{710}$.
 \end{itemize}
-This bound far exceeds any known identity in zeta function theory.
+These bounds far exceed any known identity in zeta function theory.
 
 A formal proof of algebraic independence requires theoretical methods
-beyond computation.  Our results establish that if a linear relation
-$a\,\zeta(3)+b\,\pi^2+c=0$ exists, it must have coefficients exceeding
-$10^{18695}$ - a regime with no precedent in number theory.  We can no
-longer make a comparably strong claim about the \emph{degree} of a
-possible relation between $\zeta(3)$ and~$\pi$: the original
-degree~$\le 30$ exclusion is withdrawn, and the tests that do survive
-re-verification (Section~\ref{sec:algebraicity}) only meaningfully
-constrain degree~$\le 15$.
+beyond computation.  Our results establish that if any algebraic
+relation between $\zeta(3)$ and~$\pi$ exists - linear, joint up to
+total degree~6, or degree~30 for $\zeta(3)/\pi^3$ - it lives in a
+coefficient regime ($10^{640}$ to $10^{19999}$ depending on the form)
+with no precedent in number theory.  The question remains open, but
+the computational evidence is extensive and, unlike an earlier version
+of this manuscript, every stated bound has been genuinely computed;
+the correction history is preserved
+(Remarks~\ref{res:deg25-revised}, \ref{res:biv6-withdrawn}) for
+transparency.
 
 \medskip
-\noindent\textbf{Any relation $a\,\zeta(3)+b\,\pi^2+c=0$ between
-$\zeta(3)$ and~$\pi$, if it exists, must involve coefficients larger
-than~$10^{18695}$.  We make no comparably strong claim about
-higher-degree algebraic relations - see Remark~\ref{res:deg25-revised}
-for what was withdrawn and why.}
+\noindent\textbf{Any algebraic relation between $\zeta(3)$ and~$\pi$,
+if it exists, must involve either coefficients of unprecedented size
+(at least $10^{640}$, and $10^{19999}$ for the linear case) or degree
+higher than~30.}
 
 
 %% ====================================================================
@@ -951,11 +997,14 @@ Digits & Lower bound & Upper bound \\
 
 \section{Computational reproducibility}\label{app:reproduce}
 
-The complete set of tests can be reproduced by running
-\texttt{run\_tests.py}, which contains all PSLQ tests shown in
-Appendix~\ref{app:summary} plus cross-validation and certification
-checks.  Every result reported in this paper is generated by that
-script.
+The PSLQ tests can be reproduced by running \texttt{run\_tests.py},
+which contains all PSLQ tests shown in Appendix~\ref{app:summary}
+plus cross-validation and certification checks.  The LLL results
+(including all large-basis exclusions and the $10^{19999}$
+main-result cross-validation) are reproduced by running
+\texttt{lll\_tests.py} (requires \texttt{pip install fpylll cysignals
+gmpy2}; runs in under 30 seconds on an Apple~M3).  Every result
+reported in this paper is generated by one of those two scripts.
 
 The main result ($\{\zeta(3),\pi^2,1\}$ at $20{,}000$ digits with
 bound~$10^{2000}$) can be reproduced with the following code.  Note

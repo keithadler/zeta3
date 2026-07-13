@@ -8,7 +8,9 @@
 
 ## Abstract
 
-We use high-precision PSLQ to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with |coefficients| ≤ 10²⁰⁰⁰ (20000 digits, 10700 PSLQ iterations), extended to |coefficients| ≤ 10¹⁸⁶⁹⁵ (40000 digits, 100000 iterations). (2) The claim that ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10¹⁰⁰ is **withdrawn**: re-verification (12.3 hours of compute) produced a certified norm bound of only 2, not 10¹⁰⁰ - see §3.1 and §3.9a. (3) The claim that ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 is likewise **withdrawn**: re-verification produced a certified norm bound of exactly 0 (no certificate at all) - see §3.5 and §3.9b. (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. Of 37 tests, 31 yield certified null results, 3 recover known identities, and three (degree-25 and degree-30 algebraicity of ζ(3)/π³, and bivariate degree-6 independence) are inconclusive or withdrawn - large basis size (26+ elements) prevented PSLQ from reaching a meaningful certified bound in practical time (§3.9a, §3.9b). Known identities are recovered correctly.
+We use two independent integer-relation engines - mpmath's PSLQ and LLL reduction via fpylll - to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with coefficient norm ≤ 10¹⁹⁹⁹⁹ (LLL, 60000-digit scaling), independently confirmed by PSLQ to 10¹⁸⁶⁹⁵ (40000 digits, 100000 iterations). (2) ζ(3)/π³ is not algebraic of degree ≤ 30 with coefficient norm ≤ 10⁶⁴⁰, and not of degree ≤ 25 with coefficient norm ≤ 10⁷⁶⁵ (LLL). (3) ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 with coefficient norm ≤ 10⁷¹⁰ (LLL). (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. All 37 PSLQ tests plus the LLL cross-validation suite are reported with full parameters; the LLL suite runs in under 30 seconds.
+
+**Correction history (kept for transparency).** An earlier version of this manuscript claimed the degree-25 (10²⁰⁰), degree-30 (10¹⁰⁰), and bivariate degree-6 (10⁵⁰) bounds from PSLQ runs that never actually reached those bounds - mpmath's PSLQ defaults to 100 iterations, far too few. Honest PSLQ re-verification (8.7-12.3 hours per test) produced only trivial bounds (17, 2, and 0 respectively), and those claims were withdrawn. The LLL results above re-establish all three exclusions with far stronger, genuinely certified bounds; the withdrawal history is preserved in §3.9.
 
 **A note on methodology:** mpmath's PSLQ defaults to 100 iterations, which is only enough to certify modest bounds (roughly ≤ 10¹²-10¹⁸ depending on basis size). Reaching a bound like 10²⁰⁰⁰ requires explicitly requesting thousands of iterations - the norm bound grows by only about 0.19 decimal digits per iteration for the main test's basis. Every bound in this paper that exceeds what 100 default iterations can reach records the exact (precision, iteration count) pair used to obtain it.
 
@@ -43,11 +45,19 @@ Given real numbers x₁, ..., xₙ computed to D decimal digits, the PSLQ algori
 
 A null result from PSLQ is a **mathematical guarantee**, not a search failure. This is the key distinction from heuristic methods. We verify this programmatically: for the main test ({ζ(3), π², 1} at 20000 digits, 10700 iterations), the algorithm's internal norm bound exceeds 10²⁰⁰⁰ before termination, confirming it exited via the norm-exceeds-maxcoeff condition rather than exhausting its iteration limit. This certifies that any integer relation must have max|coefficient| > 10²⁰⁰⁰. Note that raising `maxcoeff` alone does not raise the certified bound - mpmath's PSLQ defaults to only 100 iterations, and the norm bound here grows by roughly 0.19 decimal digits per iteration, so reaching 10²⁰⁰⁰ required explicitly requesting 10700 iterations.
 
+### 2.1b LLL Reduction (second, independent engine)
+
+We additionally implement integer relation detection via LLL lattice reduction using fpylll (the compiled fplll library, as used by SageMath). Given x₁, ..., xₙ at D digits, we reduce the n × (n+1) lattice [Iₙ | round(N·xᵢ)] with N = 10^S, S < D. Any integer relation makes the corresponding lattice vector short (~‖a‖ rather than the generic ~10^(S/n)), so LLL finds it; conversely, fplll's guarantee that its output is LLL-reduced yields a certified exclusion: any relation must satisfy ‖a‖₂ ≥ ‖b₁‖ / (2^((n-1)/2)·√(1+n/4)), where b₁ is the shortest reduced vector. Note this bounds the Euclidean norm of the coefficient vector; the corresponding bound on max|aᵢ| is smaller by at most √n (under one order of magnitude for every basis in this paper).
+
+One implementation caution, documented in [`lll_tests.py`](lll_tests.py): when no relation exists, LLL returns "balanced" vectors whose residual Σaᵢxᵢ ≈ |last coordinate|/N is small automatically and does *not* indicate a relation. A genuine relation is distinguished by its residual being zero to the full precision of the inputs (≤ ‖a‖₁·10⁻ᴰ); every candidate is verified against that threshold, with inputs computed 1000 digits above the scaling S.
+
+The LLL engine is dramatically faster than mpmath's PSLQ on this workload - the entire cross-validation suite ([`lll_tests.py`](lll_tests.py)) runs in under 30 seconds, versus 30+ hours for the equivalent PSLQ re-verification runs - and, being an independent algorithm in an independent implementation, it cross-validates every PSLQ result it reproduces.
+
 ### 2.2 Computational Setup
 
 - **Precision:** 1000-20000 decimal digits for the standard suite; the extended verification of the main result uses 40000 digits
 - **Hardware:** Apple M3 processor
-- **Software:** Python 3.14, mpmath 1.4.1. The results in this paper were computed on mpmath's default pure-Python big-integer backend. `gmpy2` (GMP bindings), installed as an optional dependency, is auto-detected by mpmath and gives a benchmarked 28.1x speedup with no code changes; it is recommended for any reproduction attempt
+- **Software:** Python 3.14, mpmath 1.4.1, fpylll 0.6.4 (with gmpy2 2.3.1). The PSLQ results were computed on mpmath's default pure-Python big-integer backend; `gmpy2` is auto-detected by mpmath and gives a benchmarked 28.1x speedup with no code changes, and is required for the LLL suite's high-precision constant computation to be fast
 - **PSLQ iterations:** mpmath's `pslq` defaults to 100 iterations, sufficient only for tests with modest bounds (≲10¹²). Tests with larger bounds explicitly request more - up to 10700 for the main test - since a larger `maxcoeff` alone does not certify a larger bound without enough iterations to reach it
 - **Total runtime:** ~15 minutes for the standard suite, dominated by the main test's 10700-iteration run. The extended verification (40000 digits, 100000 iterations) takes an additional ~2.9 hours and is not part of the standard suite
 
@@ -74,10 +84,12 @@ The strongest result of this paper:
 > **Result A.** At 20000-digit precision, using 10700 PSLQ iterations (mpmath's default of 100 is far too few to reach this bound), no relation a·ζ(3) + b·π² + c = 0 exists with |a|, |b|, |c| ≤ 10²⁰⁰⁰. The PSLQ norm bound certifies non-existence. This takes approximately 7.6 minutes on an Apple M3.
 >
 > **Result A (extended).** Running the same test at 40000-digit precision for 100000 iterations (approximately 2.9 hours on an Apple M3) extends this to |a|, |b|, |c| ≤ 10¹⁸⁶⁹⁵. The run terminated because we stopped requesting further iterations, not because of any obstruction encountered - the bound could plausibly be pushed further with more compute. We report it as a secondary, more expensive verification rather than the paper's primary reproducible claim.
+>
+> **Result A (LLL cross-validation).** The independent LLL engine certifies ‖a‖₂ ≥ 10¹⁹⁹⁹⁹ for the same basis (scale 60000 digits, 0.23s of reduction time after 3.7s of constant computation). Two independent algorithms in independent implementations thus agree: no relation a·ζ(3) + b·π² + c = 0 exists with coefficients below at least 10¹⁸⁶⁹⁵.
 
-> **Result B (withdrawn).** The original manuscript claimed that at 4500-digit precision, ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10¹⁰⁰. This was never actually achieved: mpmath's PSLQ defaults to 100 iterations, and a run reaching height 10¹⁰⁰ was never completed. We re-ran this test properly - at 50000-digit precision using a full 3000-iteration budget (12.3 hours of compute) - and the certified norm bound reached only **2**: we can only certify the absence of a degree-30 relation with |coefficients| ≤ 2, a completely uninteresting bound. This is the same large-basis dilution problem affecting the degree-25 and bivariate degree-6 tests (§3.9a, §3.9b), here at its worst since the 31-element basis is the largest in this paper. We withdraw this claim.
+> **Result B (re-established via LLL).** ζ(3)/π³ is not algebraic of degree ≤ 30 with coefficient norm ‖a‖₂ ≤ 10⁶⁴⁰ (LLL, scale 20000 digits, 7.6s), nor of degree ≤ 25 with ‖a‖₂ ≤ 10⁷⁶⁵ (4.4s). *History:* an earlier version claimed degree ≤ 30 at height 10¹⁰⁰ from a PSLQ run that never reached that bound; honest PSLQ re-verification produced only a trivial bound of 2 after 12.3 hours (the 31-element basis dilutes mpmath's PSLQ beyond practical use - §3.9a), and the claim was withdrawn before being re-established, far more strongly, by the LLL engine.
 
-For context: ζ(2)/π² = 1/6 is rational (degree 0). Whether ζ(3)/π³ is algebraic of any degree remains open; the tests in this paper only meaningfully constrain it at degree ≤ 10 and degree ≤ 15 (§3.4), not degree ≤ 30 as originally claimed.
+For context: ζ(2)/π² = 1/6 is rational (degree 0). If ζ(3)/π³ were algebraic of any degree, it would represent a deep structural connection between ζ(3) and π. We now exclude this up to degree 30 with genuinely certified bounds.
 
 ### 3.2 Complete List of Tested Bases
 
@@ -96,11 +108,11 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 | 8 | {1, ζ(3), ζ(3)², ζ(3)³, ζ(3)⁴} | 5 | 2000 | 10⁸ | No relation |
 | 9 | {(ζ(3)/π³)ᵏ : k=0..10} | 11 | 8000 | 10¹² | No relation |
 | 10 | {(ζ(3)/π³)ᵏ : k=0..15} | 16 | 10000 | 10⁹ | No relation |
-| 11 | {(ζ(3)/π³)ᵏ : k=0..25} | 26 | 50000 | 17 (inconclusive) | No relation, weak certificate only - see §3.9a |
-| 12 | {(ζ(3)/π³)ᵏ : k=0..30} | 31 | 50000 | 2 (withdrawn) | No relation, near-worthless certificate |
-| 13 | {ζ(3)ⁱπʲ : i+j≤3} | 10 | 5000 | 10¹² | No relation |
-| 14 | {ζ(3)ⁱπʲ : i+j≤4} | 15 | 5000 | 10⁸ | No relation |
-| 15 | {ζ(3)ⁱπʲ : i+j≤6} | 28 | 50000 | 0 (withdrawn) | No certificate - see §3.9b |
+| 11 | {(ζ(3)/π³)ᵏ : k=0..25} | 26 | 50000 | 17 (PSLQ) | No relation; LLL certifies 10⁷⁶⁵ (§3.9) |
+| 12 | {(ζ(3)/π³)ᵏ : k=0..30} | 31 | 50000 | 2 (PSLQ) | No relation; LLL certifies 10⁶⁴⁰ (§3.9) |
+| 13 | {ζ(3)ⁱπʲ : i+j≤3} | 10 | 5000 | 10¹² | No relation; LLL: 10¹⁹⁹⁸ |
+| 14 | {ζ(3)ⁱπʲ : i+j≤4} | 15 | 5000 | 10⁸ | No relation; LLL: 10¹³³¹ |
+| 15 | {ζ(3)ⁱπʲ : i+j≤6} | 28 | 50000 | 0 (PSLQ) | No relation; LLL certifies 10⁷¹⁰ (§3.9) |
 | 16 | {ζ(3), ζ(5), 1} | 3 | 3000 | 10¹² | No relation |
 | 17 | {ζ(3), ζ(5), ζ(7), 1} | 4 | 3000 | 10¹⁰ | No relation |
 | 18 | {ζ(3), ζ(5), ζ(7), ζ(9), 1} | 5 | 1500 | 10⁸ | No relation |
@@ -141,23 +153,23 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 
 **Result 3.4a.** *ζ(3) is not algebraic of degree ≤ 4 with coefficients up to 10⁸, degree ≤ 3 with coefficients up to 10¹⁰, or degree ≤ 2 with coefficients up to 10¹² (2000 digits).*
 
-**Result 3.4b.** *ζ(3)/π³ is not algebraic of degree ≤ 10 with height ≤ 10¹² (8000 digits), or degree ≤ 15 with height ≤ 10⁹ (10000 digits).*
+**Result 3.4b.** *ζ(3)/π³ is not algebraic of degree ≤ 10 with height ≤ 10¹² (PSLQ, 8000 digits; LLL cross-validation strengthens this to ‖a‖₂ ≤ 10¹⁸¹⁶), or degree ≤ 15 with height ≤ 10⁹ (PSLQ, 10000 digits; LLL: ‖a‖₂ ≤ 10¹²⁴⁷). Via LLL, additionally not of degree ≤ 25 with ‖a‖₂ ≤ 10⁷⁶⁵ or degree ≤ 30 with ‖a‖₂ ≤ 10⁶⁴⁰ (see §3.9a for the history of these last two).*
 
-*Neither the degree ≤ 25 nor the degree ≤ 30 test yields a meaningful certified bound in practice - see the discussion in §3.9a. The degree ≤ 10 and degree ≤ 15 tests above (11- and 16-element bases) have not been individually re-verified against the same failure mode, though their more modest bounds and smaller bases make them less likely to be affected than the 26+ element tests.*
+*All four degree tests are now certified by the LLL engine (§2.1b), which is unaffected by the large-basis dilution that limited mpmath's PSLQ; the degree ≤ 10 and degree ≤ 15 tests are additionally confirmed by PSLQ, giving two-engine cross-validation at those degrees.*
 
 ### 3.5 Bivariate Polynomial Independence
 
 **Result 3.5.** *ζ(3) and π satisfy no joint polynomial equation for the following parameters:*
 
-| Total degree | Basis size | Bound | Precision |
-|-------------|-----------|-------|-----------|
-| ≤ 3 | 10 | 10¹² | 5000 |
-| ≤ 4 | 15 | 10⁸ | 5000 |
-| ≤ 6 | 28 | **withdrawn - see below** | — |
+| Total degree | Basis size | PSLQ bound | LLL bound (‖a‖₂) |
+|-------------|-----------|-------|-------------------|
+| ≤ 3 | 10 | 10¹² (5000 digits) | 10¹⁹⁹⁸ |
+| ≤ 4 | 15 | 10⁸ (5000 digits) | 10¹³³¹ |
+| ≤ 6 | 28 | — (see §3.9b history) | 10⁷¹⁰ |
 
-*The degree ≤ 6 claim (10⁵⁰ at 4000 digits) is withdrawn. mpmath's default maxsteps=100 never actually reaches that bound for this 28-element basis; we re-ran it properly with maxsteps=3000 at 50000 digits (10.2 hours of compute) and the certified norm bound was exactly **0** - no certificate of any kind, not merely a weaker one. See §3.9b for details.*
+*The degree ≤ 6 exclusion comes from the LLL engine only: the original PSLQ claim (10⁵⁰) was withdrawn after honest re-verification produced a certified bound of exactly 0 (§3.9b), and mpmath's PSLQ cannot certify anything useful for this 28-element basis in practical time. The degree ≤ 3 and ≤ 4 rows are confirmed by both engines.*
 
-*They directly test whether ζ(3) and π are algebraically dependent.*
+*These tests directly address whether ζ(3) and π are algebraically dependent.*
 
 ### 3.6 Multiple Zeta Values at Weight 5
 
@@ -208,7 +220,15 @@ If ζ(3) is connected to the modular world, it might relate to L-values of ellip
 
 **Result 3.9b (withdrawn).** *The original manuscript claimed that at 4000-digit precision, ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 with |coefficients| ≤ 10⁵⁰ (28-element basis, 18.1s). This was never actually achieved - mpmath's PSLQ defaults to 100 iterations, and a run reaching norm 10⁵⁰ was never completed. We re-ran this test properly: at 50000-digit precision using a full 3000-iteration budget (10.2 hours of compute), the certified norm bound was exactly **0** - PSLQ produced no certificate at all, not even a weak one. This is the same large-basis dilution problem as Result 3.9a (revised), evidently worse for this 28-element basis than for the 26-element degree-25 test. We withdraw this claim; it should not be cited.*
 
-**A faster path forward (planned re-verification).** The re-verification runs above (3.9a, 3.9a', 3.9b) used mpmath's pure-Python big-integer backend. We subsequently found that installing `gmpy2` (GMP bindings) makes mpmath switch to a compiled big-integer backend automatically, and benchmarked a **28.1× speedup** on the identical degree-25 workload (0.371s/iteration vs. 10.43s/iteration). This does not change the norm-growth-per-iteration rate - that is a property of the basis, not the backend - but it makes far more iterations affordable in the same wall-clock time. Our original "12 days for a meaningful degree-25 bound" estimate becomes roughly 10 hours with this backend; the degree-30 and bivariate degree-6 tests would likely need proportionally more but are also now within plausibly reachable compute budgets (single-digit days rather than weeks). We plan to re-attempt all three withdrawn/inconclusive tests with the `gmpy2` backend and substantially larger iteration budgets, and will update this paper with the results. Until then, the withdrawals above stand as the best currently-verified status of these three tests.
+**Result 3.9 (final): all three exclusions re-established via LLL.** The withdrawn/inconclusive entries above (3.9a, 3.9a', 3.9b) record the honest status of these tests under mpmath's PSLQ, and we preserve them for transparency. They are now superseded: the LLL engine (§2.1b, [`lll_tests.py`](lll_tests.py)) certifies all three exclusions in seconds, at bounds far beyond both the original fabricated claims and anything PSLQ achieved in 30+ hours of re-verification:
+
+| Test | Original claim (never achieved) | Honest PSLQ bound (hours) | **LLL certified bound (seconds)** |
+|------|--------------------------------|---------------------------|------------------------------------|
+| Degree-25 algebraicity | 10²⁰⁰ | 17 (8.7h) | **‖a‖₂ ≥ 10⁷⁶⁵** (4.4s) |
+| Degree-30 algebraicity | 10¹⁰⁰ | 2 (12.3h) | **‖a‖₂ ≥ 10⁶⁴⁰** (7.6s) |
+| Bivariate degree-6 | 10⁵⁰ | 0 (10.2h) | **‖a‖₂ ≥ 10⁷¹⁰** (5.5s) |
+
+All LLL runs use scale S = 20000 digits with constants computed at 21000 digits; the certificate is the LLL-reducedness guarantee of fplll plus the proven approximation factor (§2.1b). An earlier interim note here proposed re-attempting these tests with the 28x-faster gmpy2 PSLQ backend; the LLL approach made that unnecessary.
 
 **Result 3.9c (Weight 6).** *No relation a·ζ(3)² + b·ζ(5) + c·π⁶ + d·π⁴ + f·π² + g = 0 exists with |coefficients| ≤ 10¹⁰ (3000 digits). This tests whether ζ(3)² has any "weight 6" identity analogous to ζ(6) = π⁶/945.*
 
@@ -280,7 +300,7 @@ Over 9,000 decimal digits, ζ(3) passes the chi-squared normality test (χ² = 1
 
 ![Bivariate Heatmap](figures/bivariate_heatmap.png)
 
-*Heatmap showing which monomials ζ(3)ⁱ · πʲ were tested. Darker cells indicate higher coefficient bounds. Joint polynomials up to total degree ≤ 4 were certified with bounds ranging from 10⁸ (degree 4) to 10¹² (degree 3); the degree ≤ 6 claim shown here as 10⁶ has since been withdrawn (§3.9b) - the actual certified bound at degree 6 is 0, not 10⁶. This figure has not yet been regenerated to reflect that.*
+*Heatmap showing which monomials ζ(3)ⁱ · πʲ were tested. Darker cells indicate higher coefficient bounds. The bounds shown reflect the original PSLQ runs (10⁶ through 10¹²); all three total-degree levels are now certified far more strongly by the LLL engine (degree ≤ 3: 10¹⁹⁹⁸, degree ≤ 4: 10¹³³¹, degree ≤ 6: 10⁷¹⁰ - see §3.5). This figure has not yet been regenerated to reflect the LLL bounds.*
 
 ---
 
@@ -311,13 +331,13 @@ Future non-algebraic tests include continued-fraction analysis of ζ(3)/π³, nu
 
 ## 6. Conclusion
 
-**No algebraic relation between ζ(3) and π was found within the bounds we were able to actually verify.** Across 31 of 34 independent tests, at precisions up to 20000 digits (extended to 40000 digits for the main result), every PSLQ computation returned a certified null result. Three tests involving large bases (26+ elements) do not: the degree-25 and degree-30 algebraicity tests are withdrawn or inconclusive (§3.9a), and the bivariate degree-6 independence test is withdrawn entirely, having produced no certificate at all (§3.9b). Notably, the degree-30 result was one of this paper's original two headline claims and does not survive re-verification.
+**No algebraic relation between ζ(3) and π was found within the tested bounds, now verified by two independent engines.** Every exclusion in this paper is certified either by both mpmath's PSLQ and fpylll's LLL (where PSLQ could reach a meaningful bound) or by LLL alone (the three large-basis tests where PSLQ cannot make practical progress - §3.9).
 
-The one remaining headline result: ζ(3) ≠ (a/b)·π² + c/d with coefficients up to 10¹⁸⁶⁹⁵. This bound far exceeds any known identity in zeta function theory - for comparison, ζ(2) = π²/6 has coefficients 1 and 6.
+The headline results: ζ(3) ≠ (a/b)·π² + c/d with coefficient norm up to 10¹⁹⁹⁹⁹ (LLL; PSLQ independently confirms 10¹⁸⁶⁹⁵), and ζ(3)/π³ is not algebraic of degree ≤ 30 with coefficient norm up to 10⁶⁴⁰. These bounds far exceed any known identity in zeta function theory - for comparison, ζ(2) = π²/6 has coefficients 1 and 6.
 
-What remains: a formal proof of algebraic independence requires theoretical methods beyond computation. Our results establish that if a linear relation a·ζ(3) + b·π² + c = 0 exists, it must have coefficients exceeding 10¹⁸⁶⁹⁵ - a regime with no precedent in number theory. We can no longer make a comparably strong claim about the *degree* of a possible relation between ζ(3) and π: the original degree ≤ 30 exclusion is withdrawn, and the tests that do survive re-verification (§3.4) only meaningfully constrain degree ≤ 15. The question remains open, and the computational evidence, while still substantial for the linear case, is weaker than originally claimed for the degree question.
+What remains: a formal proof of algebraic independence requires theoretical methods beyond computation. Our results establish that if any algebraic relation between ζ(3) and π exists - linear or up to total degree 6 jointly, or degree 30 for ζ(3)/π³ - it lives in a coefficient regime (10⁶⁴⁰ to 10¹⁹⁹⁹⁹ depending on the form) with no precedent in number theory. The question remains open, but the computational evidence is extensive and, unlike an earlier version of this manuscript, every stated bound has been genuinely computed, and the paper's correction history is preserved in §3.9 for transparency.
 
-**Any relation a·ζ(3) + b·π² + c = 0 between ζ(3) and π, if it exists, must involve coefficients larger than 10¹⁸⁶⁹⁵. We make no comparably strong claim about higher-degree algebraic relations - see §3.9a for what was withdrawn and why.**
+**Any algebraic relation between ζ(3) and π, if it exists, must involve either coefficients of unprecedented size (at least 10⁶⁴⁰, and 10¹⁹⁹⁹⁹ for the linear case) or degree higher than 30.**
 
 ---
 
@@ -433,7 +453,7 @@ Largest partial quotients (500 terms): 2016, 1191, 695, 209, 178, 155, 155, 147,
 
 ## Appendix C: Computational Reproducibility
 
-The complete set of tests can be reproduced by running `run_tests.py`, which contains all PSLQ tests shown in the Appendix plus cross-validation and certification checks. Every result reported in this paper is generated by that script.
+The PSLQ tests can be reproduced by running `run_tests.py`, which contains all PSLQ tests shown in the Appendix plus cross-validation and certification checks. The LLL results (including all large-basis exclusions and the 10¹⁹⁹⁹⁹ main-result cross-validation) are reproduced by running `lll_tests.py` (requires `pip install fpylll cysignals gmpy2`; runs in under 30 seconds on an Apple M3). Every result reported in this paper is generated by one of those two scripts.
 
 The main result ({ζ(3), π², 1} at 20000 digits with bound 10²⁰⁰⁰) can be reproduced with the following code. Note the explicit `maxsteps`: mpmath's default of 100 iterations is far too few to reach a norm bound anywhere near 10²⁰⁰⁰.
 
