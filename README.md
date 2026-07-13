@@ -10,9 +10,9 @@
 
 ## What is this?
 
-An open-source research project testing whether ζ(3) (Apéry's constant) is algebraically independent from π. We use the PSLQ integer relation algorithm at up to 20000-digit precision (40000 for an extended verification) across 37 tests (34 certified null results, 3 known identities recovered as validation).
+An open-source research project testing whether ζ(3) (Apéry's constant) is algebraically independent from π. We use the PSLQ integer relation algorithm at up to 20000-digit precision (40000 for an extended verification) across 37 tests (33 certified null results, 3 known identities recovered as validation, 2 currently inconclusive - see the warning below).
 
-**No relation was found within the tested bounds.** If any algebraic relation between ζ(3) and π exists, it must have degree > 30 or coefficients > 10¹⁸⁶⁹⁵.
+**No relation was found within the tested bounds that we have actually verified.** The strongest confirmed result: no relation a·ζ(3) + b·π² + c = 0 exists with coefficients up to 10¹⁸⁶⁹⁵. Claims involving degree (the degree-30 and degree-6 tests) are currently unverified or disproven-as-stated - see below before citing them.
 
 **A note on methodology:** mpmath's PSLQ defaults to 100 iterations, which only certifies modest bounds. Reaching a bound like 10²⁰⁰⁰ requires explicitly requesting thousands of iterations (the norm bound grows by ~0.19 decimal digits per iteration for the main test's basis) - a larger `maxcoeff` alone does not certify a larger bound. See [`run_tests.py`](run_tests.py) Section 9 for the certification check that catches this.
 
@@ -22,14 +22,16 @@ An open-source research project testing whether ζ(3) (Apéry's constant) is alg
 |--------|-----------|-------|
 | **No relation a·ζ(3) + b·π² + c = 0** | 20000 digits, 10700 iterations | **10²⁰⁰⁰** |
 | **No relation a·ζ(3) + b·π² + c = 0 (extended)** | 40000 digits, 100000 iterations | **10¹⁸⁶⁹⁵** |
-| **ζ(3)/π³ not algebraic degree ≤ 30** | 4500 digits | **10¹⁰⁰** |
-| ζ(3) and π: no joint polynomial degree ≤ 6 | 4000 digits | 10⁵⁰ |
+| **ζ(3)/π³ not algebraic degree ≤ 30** | 4500 digits | **10¹⁰⁰** (⚠️ unverified, see below) |
+| ζ(3) and π: no joint polynomial degree ≤ 6 | — | ⚠️ inconclusive (see below) |
 | ζ(3), ζ(5), ζ(7), ζ(9) linearly independent | 1500-3000 digits | 10⁸-10¹² |
 | ζ(3) independent from {π, e^π, Γ(1/4)} | 4000 digits | 10¹² |
 | No MZV relation: ζ(3), ζ(3,2), ζ(2,3), π⁵ | 4000 digits | 10¹⁰ |
 | Known Li₃(1/2) identity recovered | 5000 digits | 10⁶ |
 
 All null results are certified by PSLQ's internal norm bound - not search failures.
+
+**⚠️ Two results above are not currently trustworthy.** Large basis sizes turn out to dilute mpmath's fixed-point PSLQ badly: the bivariate-degree-6 test (28 basis elements) was re-run at 50000 digits with 3000 iterations (10.2 hours) and produced a certified norm bound of exactly **0** - no certificate at all, despite the table above still listing 10⁵⁰. The closely related degree-25 algebraicity test (26 elements) fared only slightly better, reaching norm 17 after 8.7 hours - see [`paper.md`](paper.md) §3.9a and §3.5 for full details. The degree-30 claim (31 elements) is very likely subject to the same problem and has not yet been re-verified. Do not cite the degree-30 or degree-6 bounds from this repository until this is resolved.
 
 ## Quick Start
 

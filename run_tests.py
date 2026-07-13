@@ -506,17 +506,26 @@ def main():
                       "Is ζ(3)/π³ algebraic of degree ≤ 30 with height ≤ 10¹⁰⁰?")
     all_results.append(("ζ(3)/π³ algebraic deg 30", rel, t))
 
-    # Bivariate degree 6
-    mp.dps = 4000
-    basis_biv6 = []
-    for total_deg in range(7):
-        for i in range(total_deg + 1):
-            j = total_deg - i
-            basis_biv6.append(z3**i * pi**j)
-    rel, t = run_pslq("Σ aᵢⱼ·ζ(3)ⁱ·πʲ = 0, i+j≤6",
-                      basis_biv6, 10**50,
-                      "Do ζ(3) and π satisfy a degree-6 polynomial with height ≤ 10⁵⁰?")
-    all_results.append(("Bivariate degree 6", rel, t))
+    # Bivariate degree 6 - WITHDRAWN, not run in the default suite.
+    #
+    # The claim below (height <= 10**50 at 4000 digits) was never actually
+    # achieved: mpmath's pslq() defaults to 100 iterations, which - for
+    # this 28-element basis - produces a norm bound of 0 (verified
+    # directly). We re-ran this properly at 50000 digits with
+    # maxsteps=3000 (10.2 hours of compute) and it STILL only reached a
+    # norm bound of 0 - no certificate at all, worse than the closely
+    # related degree-25 algebraicity test above (which at least reached
+    # norm 17). This claim is withdrawn; see paper.md Section 3.9b /
+    # paper.tex Remark biv6-withdrawn.
+    #
+    # We do not run this in the default suite since it produces nothing.
+    # To reproduce the null-certificate result yourself:
+    #
+    #   mp.dps = 50000
+    #   basis = [zeta(3)**i * pi**j for d in range(7)
+    #            for i, j in [(i, d - i) for i in range(d + 1)]]
+    #   pslq(basis, maxcoeff=10**1000, tol=mpf(10)**(-(mp.dps-200)),
+    #        maxsteps=3000, verbose=True)  # ~10.2 hours, norm bound: 0
 
     # Weight 6: ζ(3)² vs ζ(5), π⁶, π⁴, π²
     mp.dps = 3000

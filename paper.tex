@@ -56,16 +56,20 @@ $40{,}000$ digits and $100{,}000$ iterations;
 polynomial height~$\le 10^{100}$ ($4{,}500$ digits) -
 \emph{this claim has not yet been independently re-verified; see
 Remark~\ref{res:deg25-revised}};
-(3)~$\zeta(3)$ and~$\pi$ satisfy no joint polynomial of total
-degree~$\le 6$ ($4{,}000$ digits);
+(3)~the claim that $\zeta(3)$ and~$\pi$ satisfy no joint polynomial of
+total degree~$\le 6$ is \textbf{withdrawn}: re-verification produced a
+certified norm bound of exactly $0$ (no certificate at all; see
+Remark~\ref{res:biv6-withdrawn});
 (4)~no linear relation connects $\zeta(3)$, $\zeta(3,2)$, $\zeta(2,3)$,
 and~$\pi^5$ at weight~5.
-Of~37 PSLQ tests, 33 yield certified null results, 3 recover known
-identities, and one (degree-25 algebraicity of $\zeta(3)/\pi^3$) is
-inconclusive - a large basis size prevented PSLQ from reaching a
-meaningful certified bound in practical time (Remark~\ref{res:deg25-revised}).
-All tests are reported with full parameters.  The accompanying
-code is publicly available for independent verification.
+Of~37 PSLQ tests, 32 yield certified null results, 3 recover known
+identities, and two (degree-25 algebraicity of $\zeta(3)/\pi^3$, and
+bivariate degree-6 independence) are inconclusive or withdrawn - large
+basis size prevented PSLQ from reaching a meaningful certified bound
+in practical time (Remarks~\ref{res:deg25-revised}
+and~\ref{res:biv6-withdrawn}).  All tests are reported with full
+parameters.  The accompanying code is publicly available for
+independent verification.
 \end{abstract}
 
 \noindent\textbf{MSC 2020:} 11Y60 (primary); 11J72, 11M06, 11J91 (secondary).
@@ -289,7 +293,7 @@ recovered coefficient vector.}\label{tab:all-tests}\\
 12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 4500 & $10^{100}$ & No relation \\
 13 & $\{\zeta(3)^i\pi^j:i+j\le 3\}$ & 10 & 5000 & $10^{12}$ & No relation \\
 14 & $\{\zeta(3)^i\pi^j:i+j\le 4\}$ & 15 & 5000 & $10^{8}$ & No relation \\
-15 & $\{\zeta(3)^i\pi^j:i+j\le 6\}$ & 28 & 4000 & $10^{50}$ & No relation \\
+15 & $\{\zeta(3)^i\pi^j:i+j\le 6\}$ & 28 & 50000 & $0$ (withdrawn) & No certificate \\
 16 & $\{\zeta(3),\zeta(5),1\}$ & 3 & 3000 & $10^{12}$ & No relation \\
 17 & $\{\zeta(3),\zeta(5),\zeta(7),1\}$ & 4 & 3000 & $10^{10}$ & No relation \\
 18 & $\{\zeta(3),\zeta(5),\zeta(7),\zeta(9),1\}$ & 5 & 1500 & $10^{8}$ & No relation \\
@@ -401,13 +405,25 @@ Total degree $d$ & Basis size & Bound & Digits \\
 \midrule
 $\le 3$ & 10 & $10^{12}$ & 5000 \\
 $\le 4$ & 15 & $10^{8}$ & 5000 \\
-$\le 6$ & 28 & $10^{50}$ & 4000 \\
+$\le 6$ & 28 & \emph{withdrawn} & --- \\
 \bottomrule
 \end{tabular}
 \end{center}
 These tests directly address whether $\zeta(3)$ and~$\pi$ are
 algebraically dependent.
 \end{result}
+
+\begin{remark}[Degree-6: withdrawn]\label{res:biv6-withdrawn}
+The degree~$\le 6$ claim above (height~$\le 10^{50}$ at $4{,}000$
+digits) is withdrawn.  mpmath's default \texttt{maxsteps}$=100$ never
+actually reaches that bound for this $28$-element basis; we re-ran it
+properly with \texttt{maxsteps}$=3000$ at $50{,}000$ digits ($10.2$
+hours of compute) and the certified norm bound was exactly $0$ - no
+certificate of any kind, not merely a weaker one.  This is the same
+large-basis dilution problem as the degree-25 algebraicity test
+(Remark~\ref{res:deg25-revised}), evidently worse here.  This claim
+should not be cited.
+\end{remark}
 
 \subsection{Multiple zeta values at weight~5}\label{sec:mzv}
 
@@ -597,9 +613,13 @@ realistic.}
 \centering
 \includegraphics[width=0.75\textwidth]{figures/bivariate_heatmap.png}
 \caption{Heatmap showing which monomials $\zeta(3)^i\pi^j$ were
-tested.  Darker cells indicate higher coefficient bounds.  All joint
-polynomials of total degree~$\le 6$ were tested, with bounds ranging
-from $10^6$ (degree~6) to $10^{12}$ (degree~3).}
+tested.  Darker cells indicate higher coefficient bounds.  Joint
+polynomials up to total degree~$\le 4$ were certified, with bounds
+ranging from $10^8$ (degree~4) to $10^{12}$ (degree~3); the
+degree~$\le 6$ claim shown here as $10^6$ has since been withdrawn
+(Remark~\ref{res:biv6-withdrawn}) - the actual certified bound at
+degree~6 is $0$, not $10^6$.  This figure has not yet been
+regenerated to reflect that.}
 \label{fig:heatmap}
 \end{figure}
 
@@ -664,12 +684,16 @@ low-complexity relations.
 %% ====================================================================
 
 No algebraic relation between $\zeta(3)$ and~$\pi$ was found within
-the tested bounds.  Across 33 of 34 independent tests, at precisions
+the tested bounds.  Across 32 of 34 independent tests, at precisions
 up to $20{,}000$ digits (extended to $40{,}000$ digits for
 Result~\ref{res:A-extended}), every PSLQ computation returned a
-certified null result.  The remaining test (degree-25 algebraicity of
-$\zeta(3)/\pi^3$) is inconclusive due to its large basis size
-(Remark~\ref{res:deg25-revised}).
+certified null result.  Two tests involving large bases ($26$+
+elements) do not: the degree-25 algebraicity test is inconclusive
+(Remark~\ref{res:deg25-revised}), and the bivariate degree-6
+independence test is withdrawn entirely, having produced no
+certificate at all (Remark~\ref{res:biv6-withdrawn}).  The degree-30
+algebraicity claim is unverified and likely subject to the same
+problem, pending its own re-check.
 
 The two principal exclusions are:
 \begin{itemize}
@@ -768,7 +792,7 @@ and bivariate tests.}
 12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 4500 & $10^{100}$ & 29.4\,s & No relation \\
 13 & $\{\zeta(3)^i\pi^j:i{+}j\le 3\}$ & 10 & 5000 & $10^{12}$ & 4.8\,s & No relation \\
 14 & $\{\zeta(3)^i\pi^j:i{+}j\le 4\}$ & 15 & 5000 & $10^{8}$ & 11.0\,s & No relation \\
-15 & $\{\zeta(3)^i\pi^j:i{+}j\le 6\}$ & 28 & 4000 & $10^{50}$ & 18.1\,s & No relation \\
+15 & $\{\zeta(3)^i\pi^j:i{+}j\le 6\}$ & 28 & 50000 & $0$ (withd.) & 36740\,s & No certificate \\
 \bottomrule
 \end{tabular}
 \end{center}
