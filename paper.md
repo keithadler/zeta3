@@ -190,7 +190,7 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 |-------------|-----------|-------|-------------------|
 | ≤ 3 | 10 | 10¹² (5000 digits) | 10¹⁹⁹⁸ |
 | ≤ 4 | 15 | 10⁸ (5000 digits) | 10¹³³¹ |
-| ≤ 6 | 28 | — (see §3.9b history) | 10⁷¹⁰ |
+| ≤ 6 | 28 | - (see §3.9b history) | 10⁷¹⁰ |
 
 *The degree ≤ 6 exclusion comes from the LLL engine only: the original PSLQ claim (10⁵⁰) was withdrawn after honest re-verification produced a certified bound of exactly 0 (§3.9b), and mpmath's PSLQ cannot certify anything useful for this 28-element basis in practical time. The degree ≤ 3 and ≤ 4 rows are confirmed by both engines.*
 
@@ -455,19 +455,19 @@ What remains: a formal proof of algebraic independence between ζ(3) and π requ
 
 ## References
 
-[1] R. Apéry, "Irrationalité de ζ(2) et ζ(3)," *Astérisque* **61** (1979), 11–13.
+[1] R. Apéry, "Irrationalité de ζ(2) et ζ(3)," *Astérisque* **61** (1979), 11-13.
 
 [2] H. R. P. Ferguson and D. H. Bailey, "A polynomial time, numerically stable integer relation algorithm," *RNR Technical Report* RNR-91-032, 1992.
 
-[3] T. Rivoal, "La fonction zêta de Riemann prend une infinité de valeurs irrationnelles aux entiers impairs," *Comptes Rendus de l'Académie des Sciences* **331** (2000), 267–270.
+[3] T. Rivoal, "La fonction zêta de Riemann prend une infinité de valeurs irrationnelles aux entiers impairs," *Comptes Rendus de l'Académie des Sciences* **331** (2000), 267-270.
 
-[4] W. Zudilin, "One of the numbers ζ(5), ζ(7), ζ(9), ζ(11) is irrational," *Russian Mathematical Surveys* **56** (2001), 774–776.
+[4] W. Zudilin, "One of the numbers ζ(5), ζ(7), ζ(9), ζ(11) is irrational," *Russian Mathematical Surveys* **56** (2001), 774-776.
 
-[5] Yu. V. Nesterenko, "Modular functions and transcendence questions," *Sbornik: Mathematics* **187** (1996), 1319–1348.
+[5] Yu. V. Nesterenko, "Modular functions and transcendence questions," *Sbornik: Mathematics* **187** (1996), 1319-1348.
 
-[6] D. H. Bailey and J. M. Borwein, "Experimental mathematics: examples, methods and implications," *Notices of the AMS* **52** (2005), 502–514.
+[6] D. H. Bailey and J. M. Borwein, "Experimental mathematics: examples, methods and implications," *Notices of the AMS* **52** (2005), 502-514.
 
-[7] D. Zagier, "Values of zeta functions and their applications," in *First European Congress of Mathematics, Vol. II* (Paris, 1992), Progress in Mathematics **120**, Birkhäuser, 1994, 497–512.
+[7] D. Zagier, "Values of zeta functions and their applications," in *First European Congress of Mathematics, Vol. II* (Paris, 1992), Progress in Mathematics **120**, Birkhäuser, 1994, 497-512.
 
 ---
 
