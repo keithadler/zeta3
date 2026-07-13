@@ -16,7 +16,7 @@ An open-source research project testing whether ζ(3) (Apéry's constant) is alg
 
 **No relation was found within the tested bounds.** Strongest results: no relation a·ζ(3) + b·π² + c = 0 exists with coefficient norm up to **10¹⁹⁹⁹⁹** (LLL; independently confirmed to 10¹⁸⁶⁹⁵ by PSLQ), and ζ(3)/π³ is not algebraic of degree ≤ 100 with coefficient norm up to **10¹⁸³**.
 
-**🎯 One result targets an open conjecture:** we computed the depth-2 multiple zeta values ζ(6,2) and ζ(8,2) to 1100 digits (trigamma reduction, validated against three known closed forms) and verified the conjectured Zagier bases at every weight through 10. The headline: ζ(6,2) is not a rational combination of π⁸, ζ(3)²π², ζ(3)ζ(5) with coefficient norm below 10²³⁷ - numerical evidence for the *open* lower-bound direction of Zagier's dimension conjecture at weight 8 (the upper bound is a theorem; the lower bound is unproven - even ζ(5)/π⁵ irrational is open). Specialized MZV numerics has verified this structure to weight 22; ours is an independent reproduction within this project's certified-bound framework. See `paper.md` §3.9h, [`lll_zagier_check.py`](lll_zagier_check.py).
+**🎯 One line of results targets an open conjecture:** we computed the MZV generators ζ(6,2), ζ(8,2) (depth 2, trigamma reduction) and ζ(5,3,3) (depth 3, iterated Hurwitz-tail reduction, five independent validation controls) to 1100 digits from scratch, and verified the conjectured Zagier bases at every weight through 11. Headlines: ζ(6,2) is not a rational combination of π⁸, ζ(3)²π², ζ(3)ζ(5) below coefficient norm 10²³⁷ (weight 8), and the weight-11 test passes alongside a built-in theorem-guaranteed control - adding a second depth-3 value to the conjectured 9-element basis *must* produce a relation (dim ≤ 9 is a theorem), and LLL finds exactly that relation with 7-digit coefficients while the conjectured basis itself shows none. All numerical evidence for the *open* lower-bound direction of Zagier's dimension conjecture (the upper bounds are theorems; the lower bounds are unproven - even ζ(5)/π⁵ irrational is open). Specialized MZV numerics has verified this structure to weight 22; ours is an independent reproduction within this project's certified-bound framework. See `paper.md` §3.9h-i, [`lll_zagier_check.py`](lll_zagier_check.py), [`lll_weight11.py`](lll_weight11.py).
 
 ## Main Results
 
@@ -57,6 +57,7 @@ python run_tests.py     # PSLQ suite: ~15 minutes
 python lll_extended.py      # degree-100/degree-12 push + 5 new constant families, ~11 min
 python lll_new_constants.py # Catalan, zeta(5)/zeta(7), and gamma tests, ~71s
 python lll_zagier_check.py  # Zagier check incl. weight 8-10 with computed MZVs, ~7 min
+python lll_weight11.py      # weight-11 test with depth-3 zeta(5,3,3), ~35-40 min
 ```
 
 The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound in under 30 seconds. The PSLQ suite (~15 minutes, dominated by the main test's 10700 iterations) provides the independent cross-validation. The extended sweep ([`lll_extended.py`](lll_extended.py), ~11 min) pushes the degree-30/degree-6 tests further and searches new constant families (Li4(1/2), more Li3 points, new L-values). [`lll_new_constants.py`](lll_new_constants.py) (~71s) extends the same algebraicity/bivariate method to Catalan's constant, zeta(5)/zeta(7), and gamma. [`lll_zagier_check.py`](lll_zagier_check.py) (~7 min) verifies the conjectured Zagier bases through weight 10, computing the depth-2 generators zeta(6,2) and zeta(8,2). The extended PSLQ verification (40000 digits, 100000 iterations, ~2.9 hours) is documented separately in [`paper.md`](paper.md) and is not part of the default suite.
@@ -73,6 +74,7 @@ The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound i
 ├── lll_extended.py     Degree-100/degree-12 push + 5 new constant families, ~11 min
 ├── lll_new_constants.py Catalan, zeta(5)/zeta(7), and gamma tests, ~71s
 ├── lll_zagier_check.py Zagier check through weight 10 (computes zeta(6,2), zeta(8,2)), ~7 min
+├── lll_weight11.py     Weight-11 test with depth-3 zeta(5,3,3) + theorem control, ~35-40 min
 ├── run_tests.py        PSLQ test suite (34 of 37 tests; 3 large-basis tests are LLL-only - see correction history above)
 ├── generate_figures.py Optional figure generation (requires matplotlib)
 └── figures/            Generated figures for the paper

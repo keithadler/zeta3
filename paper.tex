@@ -94,20 +94,21 @@ and $\zeta(7)$ individually, and to the Euler-Mascheroni
 constant~$\gamma$ (whose irrationality is itself unproven), likewise
 finds no relations (Section~\ref{sec:new-constants});
 (7)~we numerically verify the conjectured bases of the multiple zeta
-value algebra at every weight $0$-$10$, computing the genuine depth-2
-generators $\zeta(6,2)$ and $\zeta(8,2)$ to $1{,}100$ digits via a
-validated trigamma reduction; the weight-8 result targets the open
-lower-bound direction of Zagier's dimension conjecture -
-$\zeta(6,2)$ is not a rational combination of $\pi^8$,
-$\zeta(3)^2\pi^2$, $\zeta(3)\zeta(5)$ with coefficient norm below
-$10^{237}$, so the weight-8 space really does look 4-dimensional as
-Zagier predicts, the matching upper bound being a theorem of Terasoma
-and Deligne--Goncharov.  Specialized MZV numerics has verified this
-structure to far higher weight (the Data Mine of
+value algebra at every weight $0$-$11$, computing the genuine
+generators $\zeta(6,2)$ and $\zeta(8,2)$ (depth~2, trigamma
+reduction) and $\zeta(5,3,3)$ (depth~3, an iterated Hurwitz-tail
+reduction validated by five independent controls) to $1{,}100$
+digits; the weight-8 result targets the open lower-bound direction of
+Zagier's dimension conjecture - $\zeta(6,2)$ is not a rational
+combination of $\pi^8$, $\zeta(3)^2\pi^2$, $\zeta(3)\zeta(5)$ with
+coefficient norm below $10^{237}$ - and the weight-11 test carries a
+theorem-guaranteed built-in control that simultaneously validates
+evaluator, basis, and search.  Specialized MZV numerics has verified
+this structure to far higher weight (the Data Mine of
 Bl\"umlein--Broadhurst--Vermaseren reached weight~$22$); ours is an
 independent reproduction within this paper's certified-bound
 framework, not a frontier advance
-(Section~\ref{sec:zagier}).
+(Sections~\ref{sec:zagier}, \ref{sec:weight11}).
 All 37 PSLQ tests plus the LLL cross-validation, extended-search,
 new-constant, and Zagier-dimension suites are reported with full
 parameters; the entire LLL workload runs in about $12$ minutes.
@@ -1017,6 +1018,80 @@ Section~\ref{sec:pitfall}: every certification method in this paper
 has at least one silent failure mode, and both were caught only by
 knowing what the failure signature looks like.
 
+\subsection{Weight 11: the first genuine depth-3
+test}\label{sec:weight11}
+
+Weight~$11$ is where depth~$2$ stops sufficing, for a provable
+reason: single-zeta monomials plus $\zeta(6,2)\zeta(3)$ supply only
+$8$ of the conjectured $d_{11}=9$ dimensions, and by Euler's
+classical theorem every depth-2 MZV of odd weight reduces to single
+zetas - so the $9$th generator must have depth~$\ge 3$.  We take
+$\zeta(5,3,3)$ (all indices $\ge 2$) and extend the Hurwitz-tail
+method of Section~\ref{sec:zagier} one level deeper
+(\texttt{lll\_weight11.py}): iterating
+$H^{(s)}_{m-1}=\zeta(s)-Z(s,m)$ ($Z$ = Hurwitz zeta) through the
+triple sum and swapping summation order gives, for indices
+$a,b,c\ge 2$,
+\[
+  \zeta(a,b,c) = \zeta(a)\zeta(b,c) - \zeta(c)A + \zeta(a)B - C,
+\]
+\[
+  A=\sum_m \frac{Z(b,m)}{m^a},\quad
+  B=\sum_n \frac{Z(c,n)}{n^b},\quad
+  C=\sum_n \frac{Z(c,n)\,Z(a,n{+}1)}{n^b},
+\]
+all smooth Euler--Maclaurin-summable sums.  Five validations precede
+any use: (1)~$\zeta(2,2,2)=\pi^6/5040$ (the classical
+$\zeta(\{2\}^n)=\pi^{2n}/(2n{+}1)!$) reproduced to $400$-plus digits;
+(2)~a brute-force truncated triple sum for $\zeta(5,3,3)$ agrees to
+exactly the predicted truncation error; (3)~LLL finds the
+Euler-guaranteed weight-7 reduction of $\zeta(3,2,2)$, namely
+$[80,-785,100,-2]$ against
+$\{\zeta(3,2,2),\zeta(7),\zeta(5)\pi^2,\zeta(3)\pi^4\}$; (4)~LLL
+finds the known weight-8 relation between $\zeta(5,3)$ and
+$\zeta(6,2)$; (5)~LLL finds the weight-8 reduction of the depth-3
+value $\zeta(4,2,2)$ in the basis containing $\zeta(6,2)$.
+
+\textbf{A theorem-guaranteed control is built into the main test.}
+Since $\dim\le 9$ at weight~$11$ is a theorem, any \emph{ten}
+weight-11 elements of the MZV algebra must satisfy a rational
+relation.  We therefore run two searches: the $9$-element conjectured
+basis (where the open direction of Zagier's conjecture predicts no
+relation), and the same basis plus a second depth-3 value,
+$\zeta(7,2,2)$, where a relation \emph{must} exist and LLL finding
+it - with small, clearly non-spurious coefficients - validates the
+evaluator, the basis, and the search simultaneously.
+
+\begin{result}\label{res:weight11}
+At $1{,}100$-digit precision (LLL scale $950$), the $9$-element
+conjectured weight-11 basis
+\[
+  \{\zeta(11),\ \zeta(9)\pi^2,\ \zeta(7)\pi^4,\ \zeta(5)\zeta(3)^2,\
+  \zeta(5)\pi^6,\ \zeta(3)^3\pi^2,\ \zeta(3)\pi^8,\
+  \zeta(6,2)\zeta(3),\ \boldsymbol{\zeta(5,3,3)}\}
+\]
+admits no rational relation with coefficient norm below
+$10^{104.3}$, while the $10$-element extension by
+$\boldsymbol{\zeta(7,2,2)}$ yields the theorem-required relation
+$[1057995,\ -56700,\ -846,\ -64800,\ -320,\ 0,\ 0,\ 64800,\ 25920,\ -32400]$.
+\end{result}
+
+\noindent The control relation's coefficients ($7$ digits at most,
+against $\sim 10^{95}$-scale spurious vectors at this lattice size)
+leave no doubt it is the genuine theorem-guaranteed identity; the
+identical integer vector was independently found in a $450$-digit
+prototype run, a two-precision cross-confirmation - in
+effect, a numerically discovered depth-3 reduction of $\zeta(7,2,2)$
+into the conjectured basis.  The $9$-element null result extends this
+paper's evidence for the open lower-bound direction of Zagier's
+conjecture from weight~$10$ to weight~$11$, now including a generator
+no depth-2 method can reach.  The same scope caveat as
+Section~\ref{sec:zagier} applies: the Data Mine~\cite{BBV2010}
+verified far beyond this weight.  Weight~$12$ requires two further
+generators, at least one of depth~$4$ with an index equal to~$1$
+(classically $\zeta(6,4,1,1)$), which breaks the Hurwitz-tail
+reduction used here; that is where we stop.
+
 \subsection{BBP-type formula search}\label{sec:bbp}
 
 \begin{result}\label{res:bbp-validation}
@@ -1276,15 +1351,18 @@ Our results delineate the boundary of what computation alone can
 establish and may guide future theoretical work by ruling out
 low-complexity relations.
 
-The most concrete extension of this work is continuing the Zagier
-verification past weight~$10$, and weight~$11$ is where the
-difficulty genuinely rises: single-zeta monomials plus
-$\zeta(6,2)\zeta(3)$ give only $8$ of the conjectured $d_{11}=9$
-dimensions, and the missing generator cannot be depth~$2$ (by
-Euler's classical theorem, every depth-2 MZV of odd weight reduces to
-single zetas), so a depth-$\ge 3$ evaluator really is required
-there - the trigamma reduction of Section~\ref{sec:zagier} is
-specific to depth~$2$.  Other future non-algebraic tests include
+The weight-11 barrier flagged in an earlier version of this
+section - the $9$th generator cannot be depth~$2$, by Euler's
+odd-weight reduction theorem - has since been crossed:
+Section~\ref{sec:weight11} extends the Hurwitz-tail evaluator to
+depth~$3$ and completes the weight-11 verification with
+$\zeta(5,3,3)$ computed from scratch.  The frontier for this project
+is now weight~$12$, which requires two further generators including
+one of depth~$4$ with an index equal to~$1$ (classically
+$\zeta(6,4,1,1)$); index-$1$ entries break the Hurwitz-tail
+reduction used here, so weight~$12$ would need a genuinely different
+evaluator (e.g.\ the H\"older-convolution or multiple-polylogarithm
+methods used by GiNaC and the Data Mine~\cite{BBV2010}).  Other future non-algebraic tests include
 continued-fraction analysis of $\zeta(3)/\pi^3$, numerical
 verification of integral representations, and targeted series
 identities mixing $\zeta(3)$ and~$\pi$.
@@ -1325,20 +1403,20 @@ bound as materially stronger evidence than a smaller one already
 provided; the exclusion regime here has no precedent in number theory
 either way.
 
-\textbf{One result targets an open conjecture rather than excluding
-the unexpected:} we computed the depth-2 multiple zeta values
-$\zeta(6,2)$ and $\zeta(8,2)$ to $1{,}100$ digits (via a trigamma
-reduction validated against three known closed forms) and verified
-the full conjectured Zagier bases at weights $8$, $9$, and~$10$.  In
-particular, $\zeta(6,2)$ is not a rational combination of $\pi^8$,
-$\zeta(3)^2\pi^2$, $\zeta(3)\zeta(5)$ with coefficient norm below
-$10^{237}$ - numerical evidence for the open lower-bound direction of
-Zagier's dimension conjecture at weight~$8$, where the matching upper
-bound is a theorem (Section~\ref{sec:zagier}).  We note the field's
-specialized tooling has verified this structure to
-weight~$22$~\cite{BBV2010}; ours is an independent in-framework
-reproduction, and extending it competitively past weight~$10$ would
-require a depth-$\ge 3$ MZV evaluator
+\textbf{One line of results targets an open conjecture rather than
+excluding the unexpected:} we computed the MZV generators
+$\zeta(6,2)$ and $\zeta(8,2)$ (depth~2) and $\zeta(5,3,3)$
+(depth~3) to $1{,}100$ digits from scratch, each behind its own
+validation chain, and verified the full conjectured Zagier bases at
+weights $8$ through~$11$.  The two strongest points: $\zeta(6,2)$ is
+not a rational combination of $\pi^8$, $\zeta(3)^2\pi^2$,
+$\zeta(3)\zeta(5)$ below coefficient norm $10^{237}$
+(Section~\ref{sec:zagier}), and the weight-11 test passes alongside
+a built-in theorem-guaranteed control that simultaneously validates
+evaluator, basis, and search (Section~\ref{sec:weight11}).  The
+field's specialized tooling has verified this structure to
+weight~$22$~\cite{BBV2010}; weight~$12$ (needing depth~$4$ with
+index-$1$ entries) is where our methods stop
 (Section~\ref{sec:limitations}).
 
 A formal proof of algebraic independence requires theoretical methods
@@ -1565,8 +1643,11 @@ $\gamma$ tests (Section~\ref{sec:new-constants}) are reproduced by
 verification through weight~$10$ (Section~\ref{sec:zagier}) is
 reproduced by \texttt{lll\_zagier\_check.py} ($\sim 7$ minutes,
 dominated by the $1{,}100$-digit evaluations of $\zeta(6,2)$ and
-$\zeta(8,2)$).  Every result reported
-in this paper is generated by one of those five scripts.
+$\zeta(8,2)$).  The weight-11 test with the depth-3 generator
+(Section~\ref{sec:weight11}) is reproduced by
+\texttt{lll\_weight11.py} ($\sim 35$-$40$ minutes, dominated by the
+two $1{,}100$-digit depth-3 evaluations).  Every result reported in
+this paper is generated by one of those six scripts.
 
 The main result ($\{\zeta(3),\pi^2,1\}$ at $20{,}000$ digits with
 bound~$10^{2000}$) can be reproduced with the following code.  Note
