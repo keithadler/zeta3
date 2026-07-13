@@ -8,7 +8,7 @@
 
 ## Abstract
 
-We use high-precision PSLQ to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with |coefficients| ≤ 10²⁰⁰⁰ (20000 digits, 10700 PSLQ iterations), extended to |coefficients| ≤ 10¹⁸⁶⁹⁵ (40000 digits, 100000 iterations). (2) ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10¹⁰⁰ (4500 digits) - **this claim has not yet been independently re-verified; see §3.9a**. (3) The claim that ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 is **withdrawn**: re-verification produced a certified norm bound of exactly 0 (no certificate at all) - see §3.5 and §3.9b. (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. Of 37 tests, 32 yield certified null results, 3 recover known identities, and two (degree-25 algebraicity of ζ(3)/π³, and bivariate degree-6 independence) are inconclusive or withdrawn - large basis size prevented PSLQ from reaching a meaningful certified bound in practical time (§3.9a, §3.9b). Known identities are recovered correctly.
+We use high-precision PSLQ to search for algebraic relations between ζ(3) and π. Main results: (1) No relation a·ζ(3) + b·π² + c = 0 exists with |coefficients| ≤ 10²⁰⁰⁰ (20000 digits, 10700 PSLQ iterations), extended to |coefficients| ≤ 10¹⁸⁶⁹⁵ (40000 digits, 100000 iterations). (2) The claim that ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10¹⁰⁰ is **withdrawn**: re-verification (12.3 hours of compute) produced a certified norm bound of only 2, not 10¹⁰⁰ - see §3.1 and §3.9a. (3) The claim that ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 is likewise **withdrawn**: re-verification produced a certified norm bound of exactly 0 (no certificate at all) - see §3.5 and §3.9b. (4) No linear relation connects ζ(3), ζ(3,2), ζ(2,3), and π⁵ at weight 5. Of 37 tests, 31 yield certified null results, 3 recover known identities, and three (degree-25 and degree-30 algebraicity of ζ(3)/π³, and bivariate degree-6 independence) are inconclusive or withdrawn - large basis size (26+ elements) prevented PSLQ from reaching a meaningful certified bound in practical time (§3.9a, §3.9b). Known identities are recovered correctly.
 
 **A note on methodology:** mpmath's PSLQ defaults to 100 iterations, which is only enough to certify modest bounds (roughly ≤ 10¹²-10¹⁸ depending on basis size). Reaching a bound like 10²⁰⁰⁰ requires explicitly requesting thousands of iterations - the norm bound grows by only about 0.19 decimal digits per iteration for the main test's basis. Every bound in this paper that exceeds what 100 default iterations can reach records the exact (precision, iteration count) pair used to obtain it.
 
@@ -69,15 +69,15 @@ All three known identities were detected correctly, confirming that PSLQ finds r
 
 ### 3.1 Main Results
 
-The two strongest results of this paper:
+The strongest result of this paper:
 
 > **Result A.** At 20000-digit precision, using 10700 PSLQ iterations (mpmath's default of 100 is far too few to reach this bound), no relation a·ζ(3) + b·π² + c = 0 exists with |a|, |b|, |c| ≤ 10²⁰⁰⁰. The PSLQ norm bound certifies non-existence. This takes approximately 7.6 minutes on an Apple M3.
 >
 > **Result A (extended).** Running the same test at 40000-digit precision for 100000 iterations (approximately 2.9 hours on an Apple M3) extends this to |a|, |b|, |c| ≤ 10¹⁸⁶⁹⁵. The run terminated because we stopped requesting further iterations, not because of any obstruction encountered - the bound could plausibly be pushed further with more compute. We report it as a secondary, more expensive verification rather than the paper's primary reproducible claim.
 
-> **Result B.** At 4500-digit precision, ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10¹⁰⁰. This means ζ(3)/π³ is not the root of any polynomial a₀ + a₁x + ... + a₃₀x³⁰ = 0 with |aᵢ| ≤ 10¹⁰⁰.
+> **Result B (withdrawn).** The original manuscript claimed that at 4500-digit precision, ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10¹⁰⁰. This was never actually achieved: mpmath's PSLQ defaults to 100 iterations, and a run reaching height 10¹⁰⁰ was never completed. We re-ran this test properly - at 50000-digit precision using a full 3000-iteration budget (12.3 hours of compute) - and the certified norm bound reached only **2**: we can only certify the absence of a degree-30 relation with |coefficients| ≤ 2, a completely uninteresting bound. This is the same large-basis dilution problem affecting the degree-25 and bivariate degree-6 tests (§3.9a, §3.9b), here at its worst since the 31-element basis is the largest in this paper. We withdraw this claim.
 
-For context: ζ(2)/π² = 1/6 is rational (degree 0). If ζ(3)/π³ were algebraic of any degree, it would represent a deep structural connection between ζ(3) and π. We exclude this up to degree 30.
+For context: ζ(2)/π² = 1/6 is rational (degree 0). Whether ζ(3)/π³ is algebraic of any degree remains open; the tests in this paper only meaningfully constrain it at degree ≤ 10 and degree ≤ 15 (§3.4), not degree ≤ 30 as originally claimed.
 
 ### 3.2 Complete List of Tested Bases
 
@@ -97,7 +97,7 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 | 9 | {(ζ(3)/π³)ᵏ : k=0..10} | 11 | 8000 | 10¹² | No relation |
 | 10 | {(ζ(3)/π³)ᵏ : k=0..15} | 16 | 10000 | 10⁹ | No relation |
 | 11 | {(ζ(3)/π³)ᵏ : k=0..25} | 26 | 50000 | 17 (inconclusive) | No relation, weak certificate only - see §3.9a |
-| 12 | {(ζ(3)/π³)ᵏ : k=0..30} | 31 | 4500 | 10¹⁰⁰ | No relation |
+| 12 | {(ζ(3)/π³)ᵏ : k=0..30} | 31 | 50000 | 2 (withdrawn) | No relation, near-worthless certificate |
 | 13 | {ζ(3)ⁱπʲ : i+j≤3} | 10 | 5000 | 10¹² | No relation |
 | 14 | {ζ(3)ⁱπʲ : i+j≤4} | 15 | 5000 | 10⁸ | No relation |
 | 15 | {ζ(3)ⁱπʲ : i+j≤6} | 28 | 50000 | 0 (withdrawn) | No certificate - see §3.9b |
@@ -143,7 +143,7 @@ The following table consolidates all PSLQ tests performed in this study (excludi
 
 **Result 3.4b.** *ζ(3)/π³ is not algebraic of degree ≤ 10 with height ≤ 10¹² (8000 digits), or degree ≤ 15 with height ≤ 10⁹ (10000 digits).*
 
-*The degree ≤ 25 test does not yield a meaningful certified bound in practice - see the discussion in §3.9a. The degree ≤ 30 claim from the original manuscript (height ≤ 10¹⁰⁰, 4500 digits) has not yet been independently re-verified; given what §3.9a found for the closely related degree-25 test, it should be treated with caution pending confirmation. The degree ≤ 10 and degree ≤ 15 tests above (11- and 16-element bases) also have not been individually re-verified against the same failure mode, though their more modest bounds and smaller bases make them less likely to be affected than the 26+ element tests.*
+*Neither the degree ≤ 25 nor the degree ≤ 30 test yields a meaningful certified bound in practice - see the discussion in §3.9a. The degree ≤ 10 and degree ≤ 15 tests above (11- and 16-element bases) have not been individually re-verified against the same failure mode, though their more modest bounds and smaller bases make them less likely to be affected than the 26+ element tests.*
 
 ### 3.5 Bivariate Polynomial Independence
 
@@ -203,6 +203,8 @@ If ζ(3) is connected to the modular world, it might relate to L-values of ellip
 ### 3.9 Higher-Degree and Harder Tests
 
 **Result 3.9a (revised - inconclusive).** *The original manuscript claimed ζ(3)/π³ is not algebraic of degree ≤ 25 with polynomial height ≤ 10²⁰⁰ at 6000 digits in 27.0s. This was never actually achieved: mpmath's PSLQ defaults to 100 iterations, and reaching a norm bound of 10²⁰⁰ was never run to completion. We re-ran this test properly: at 50000-digit precision using the full 3000-iteration budget we allotted (8.7 hours of compute), the certified norm bound reached only 17 - i.e., we can only certify the absence of a degree-25 relation with |coefficients| ≤ 17, not 10²⁰⁰. This is a consequence of the 26-element basis: precision is divided across far more dimensions than in the main test, and the norm grows roughly 280× slower per iteration (about 0.0007 decimal digits/iteration here, versus 0.19 for the 3-element main-test basis). Reaching a bound like 10⁸ at this rate would require on the order of 10⁵ iterations - roughly 12 days of compute at the same per-iteration cost - which we consider impractical for this paper. We report this test as inconclusive rather than as a meaningful exclusion result, and flag it as an open item for future work (e.g. a compiled LLL implementation such as fpylll may scale better on large bases than mpmath's fixed-point PSLQ).*
+
+**Result 3.9a' (degree-30: withdrawn).** *The original manuscript's headline "Result B" claimed ζ(3)/π³ is not algebraic of degree ≤ 30 with polynomial height ≤ 10¹⁰⁰ at 4500 digits in 29.4s - never actually achieved for the same reason as above. We re-ran it at 50000-digit precision with a full 3000-iteration budget (12.3 hours of compute): the certified norm bound reached only 2. This is the largest basis in the paper (31 elements) and shows the worst dilution of the three affected tests - worse even than the degree-25 test above. We withdraw this claim entirely; it was one of the paper's two headline results and should not be cited.*
 
 **Result 3.9b (withdrawn).** *The original manuscript claimed that at 4000-digit precision, ζ(3) and π satisfy no joint polynomial of total degree ≤ 6 with |coefficients| ≤ 10⁵⁰ (28-element basis, 18.1s). This was never actually achieved - mpmath's PSLQ defaults to 100 iterations, and a run reaching norm 10⁵⁰ was never completed. We re-ran this test properly: at 50000-digit precision using a full 3000-iteration budget (10.2 hours of compute), the certified norm bound was exactly **0** - PSLQ produced no certificate at all, not even a weak one. This is the same large-basis dilution problem as Result 3.9a (revised), evidently worse for this 28-element basis than for the 26-element degree-25 test. We withdraw this claim; it should not be cited.*
 
@@ -307,13 +309,13 @@ Future non-algebraic tests include continued-fraction analysis of ζ(3)/π³, nu
 
 ## 6. Conclusion
 
-**No algebraic relation between ζ(3) and π was found within the tested bounds.** Across 32 of 34 independent tests, at precisions up to 20000 digits (extended to 40000 digits for the main result), every PSLQ computation returned a certified null result. Two tests involving large bases (26+ elements) do not: the degree-25 algebraicity test is inconclusive (§3.9a), and the bivariate degree-6 independence test is withdrawn entirely, having produced no certificate at all (§3.9b). The degree-30 algebraicity claim is unverified and likely subject to the same problem, pending its own re-check.
+**No algebraic relation between ζ(3) and π was found within the bounds we were able to actually verify.** Across 31 of 34 independent tests, at precisions up to 20000 digits (extended to 40000 digits for the main result), every PSLQ computation returned a certified null result. Three tests involving large bases (26+ elements) do not: the degree-25 and degree-30 algebraicity tests are withdrawn or inconclusive (§3.9a), and the bivariate degree-6 independence test is withdrawn entirely, having produced no certificate at all (§3.9b). Notably, the degree-30 result was one of this paper's original two headline claims and does not survive re-verification.
 
-The two headline results: ζ(3) ≠ (a/b)·π² + c/d with coefficients up to 10¹⁸⁶⁹⁵, and ζ(3)/π³ is not algebraic of degree ≤ 30 with height up to 10¹⁰⁰. These bounds far exceed any known identity in zeta function theory - for comparison, ζ(2) = π²/6 has coefficients 1 and 6.
+The one remaining headline result: ζ(3) ≠ (a/b)·π² + c/d with coefficients up to 10¹⁸⁶⁹⁵. This bound far exceeds any known identity in zeta function theory - for comparison, ζ(2) = π²/6 has coefficients 1 and 6.
 
-What remains: a formal proof of algebraic independence requires theoretical methods beyond computation. But our results establish that if any relation exists, it lives in a regime (degree > 30, coefficients > 10¹⁸⁶⁹⁵) that has no precedent in number theory. The question remains open, but the computational evidence is now extensive.
+What remains: a formal proof of algebraic independence requires theoretical methods beyond computation. Our results establish that if a linear relation a·ζ(3) + b·π² + c = 0 exists, it must have coefficients exceeding 10¹⁸⁶⁹⁵ - a regime with no precedent in number theory. We can no longer make a comparably strong claim about the *degree* of a possible relation between ζ(3) and π: the original degree ≤ 30 exclusion is withdrawn, and the tests that do survive re-verification (§3.4) only meaningfully constrain degree ≤ 15. The question remains open, and the computational evidence, while still substantial for the linear case, is weaker than originally claimed for the degree question.
 
-**Any algebraic relation between ζ(3) and π, if it exists, must involve either coefficients larger than 10¹⁸⁶⁹⁵ or degree higher than 30.**
+**Any relation a·ζ(3) + b·π² + c = 0 between ζ(3) and π, if it exists, must involve coefficients larger than 10¹⁸⁶⁹⁵. We make no comparably strong claim about higher-degree algebraic relations - see §3.9a for what was withdrawn and why.**
 
 ---
 
@@ -363,7 +365,7 @@ All tests run on Apple M3 (8 cores). Times are for the PSLQ step only. Test numb
 | 9 | {(ζ(3)/π³)ᵏ : k=0..10} | 11 | 8000 | 10¹² | 12.6s | No relation |
 | 10 | {(ζ(3)/π³)ᵏ : k=0..15} | 16 | 10000 | 10⁹ | 34.8s | No relation |
 | 11 | {(ζ(3)/π³)ᵏ : k=0..25} | 26 | 50000 | 17 (inconclusive) | 31303s (8.7h) | No relation, weak certificate only |
-| 12 | **{(ζ(3)/π³)ᵏ : k=0..30}** | **31** | **4500** | **10¹⁰⁰** | **29.4s** | **No relation** |
+| 12 | **{(ζ(3)/π³)ᵏ : k=0..30}** | **31** | **50000** | **2 (withdrawn)** | **44164s (12.3h)** | **No relation, near-worthless** |
 | 13 | {ζ(3)ⁱπʲ : i+j≤3} | 10 | 5000 | 10¹² | 4.8s | No relation |
 | 14 | {ζ(3)ⁱπʲ : i+j≤4} | 15 | 5000 | 10⁸ | 11.0s | No relation |
 | 15 | {ζ(3)ⁱπʲ : i+j≤6} | 28 | 50000 | 0 (withdrawn) | 36740s (10.2h) | No certificate |

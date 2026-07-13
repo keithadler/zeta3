@@ -488,23 +488,27 @@ def main():
     #   pslq(basis, maxcoeff=10**1000, tol=mpf(10)**(-(mp.dps-200)),
     #        maxsteps=3000, verbose=True)  # ~8.7 hours
 
-    # ζ(3)/π³ degree 30 - CAUTION: unverified, pending re-check.
-    # The degree-25 test right above this one (26-element basis) claimed
-    # height <= 10**200 but, at mpmath's default maxsteps=100, actually
-    # only certifies norm=0; a proper 3000-iteration/50000-digit rerun
-    # took 8.7 hours to reach norm~17 (see comment above). This degree-30
-    # test (31 elements, an even larger basis) has NOT yet been re-run
-    # with adequate maxsteps and is very likely subject to the same
-    # problem - the maxcoeff=10**100 claim below is probably not real.
-    # Left as-is pending re-verification; do not cite this bound without
-    # rerunning it with maxsteps large enough to confirm norm >= maxcoeff.
-    mp.dps = 4500
-    ratio = z3 / pi**3
-    basis_deg30 = [ratio**k for k in range(31)]
-    rel, t = run_pslq("Σ aₖ·(ζ(3)/π³)ᵏ = 0, k=0..30",
-                      basis_deg30, 10**100,
-                      "Is ζ(3)/π³ algebraic of degree ≤ 30 with height ≤ 10¹⁰⁰?")
-    all_results.append(("ζ(3)/π³ algebraic deg 30", rel, t))
+    # ζ(3)/π³ degree 30 - WITHDRAWN, not run in the default suite.
+    #
+    # This was the paper's original second headline result. The claim
+    # below (height <= 10**100 at 4500 digits) was never actually
+    # achieved: mpmath's pslq() defaults to 100 iterations, which - for
+    # this 31-element basis (the largest in the paper) - produces a
+    # near-zero norm bound. We re-ran it properly at 50000 digits with
+    # maxsteps=3000 (12.3 hours of compute) and the certified norm bound
+    # reached only 2 - a completely uninteresting bound, not 10**100.
+    # This is the worst case of the three affected large-basis tests.
+    # See paper.md Section 3.9a' / paper.tex Remark deg25-revised.
+    #
+    # We do not run this in the default suite since the honest result
+    # is worthless and not worth 12.3 hours of every reproducer's time.
+    # To reproduce the norm~2 result yourself:
+    #
+    #   mp.dps = 50000
+    #   ratio = zeta(3) / pi**3
+    #   basis = [ratio**k for k in range(31)]
+    #   pslq(basis, maxcoeff=10**1000, tol=mpf(10)**(-(mp.dps-200)),
+    #        maxsteps=3000, verbose=True)  # ~12.3 hours, norm bound: 2
 
     # Bivariate degree 6 - WITHDRAWN, not run in the default suite.
     #

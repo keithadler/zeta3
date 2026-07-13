@@ -52,21 +52,23 @@ Our principal results are:
 $|a|,|b|,|c| \le 10^{2000}$ (verified at $20{,}000$-digit precision,
 $10{,}700$ PSLQ iterations), extended to $|a|,|b|,|c|\le 10^{18695}$ at
 $40{,}000$ digits and $100{,}000$ iterations;
-(2)~$\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with
-polynomial height~$\le 10^{100}$ ($4{,}500$ digits) -
-\emph{this claim has not yet been independently re-verified; see
-Remark~\ref{res:deg25-revised}};
+(2)~the claim that $\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$
+with polynomial height~$\le 10^{100}$ ($4{,}500$ digits) is
+\textbf{withdrawn}: re-verification ($12.3$ hours of compute) produced
+a certified norm bound of only $2$, not $10^{100}$ - see
+Remark~\ref{res:deg25-revised};
 (3)~the claim that $\zeta(3)$ and~$\pi$ satisfy no joint polynomial of
-total degree~$\le 6$ is \textbf{withdrawn}: re-verification produced a
-certified norm bound of exactly $0$ (no certificate at all; see
-Remark~\ref{res:biv6-withdrawn});
+total degree~$\le 6$ is likewise \textbf{withdrawn}: re-verification
+produced a certified norm bound of exactly $0$ (no certificate at all;
+see Remark~\ref{res:biv6-withdrawn});
 (4)~no linear relation connects $\zeta(3)$, $\zeta(3,2)$, $\zeta(2,3)$,
 and~$\pi^5$ at weight~5.
-Of~37 PSLQ tests, 32 yield certified null results, 3 recover known
-identities, and two (degree-25 algebraicity of $\zeta(3)/\pi^3$, and
-bivariate degree-6 independence) are inconclusive or withdrawn - large
-basis size prevented PSLQ from reaching a meaningful certified bound
-in practical time (Remarks~\ref{res:deg25-revised}
+Of~37 PSLQ tests, 31 yield certified null results, 3 recover known
+identities, and three (degree-25 and degree-30 algebraicity of
+$\zeta(3)/\pi^3$, and bivariate degree-6 independence) are
+inconclusive or withdrawn - large basis size ($26$+ elements)
+prevented PSLQ from reaching a meaningful certified bound in practical
+time (Remark~\ref{res:deg25-revised}
 and~\ref{res:biv6-withdrawn}).  All tests are reported with full
 parameters.  The accompanying code is publicly available for
 independent verification.
@@ -244,17 +246,28 @@ report it as a secondary, more expensive verification rather than the
 paper's primary reproducible claim.
 \end{result}
 
-\begin{result}[Non-algebraicity of $\zeta(3)/\pi^3$]\label{res:B}
-At $4{,}500$-digit precision, $\zeta(3)/\pi^3$ is not algebraic of
-degree~$\le 30$ with polynomial height~$\le 10^{100}$.  That is,
-$\zeta(3)/\pi^3$ is not a root of any polynomial
-$a_0+a_1 x+\cdots+a_{30}x^{30}=0$ with $|a_i|\le 10^{100}$.
+\begin{result}[Non-algebraicity of $\zeta(3)/\pi^3$ -
+\textbf{withdrawn}]\label{res:B}
+The original manuscript claimed that at $4{,}500$-digit precision,
+$\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with polynomial
+height~$\le 10^{100}$.  This was never actually achieved: mpmath's
+PSLQ defaults to $100$ iterations, and a run reaching height $10^{100}$
+was never completed.  We re-ran this test properly - at $50{,}000$-digit
+precision using a full $3{,}000$-iteration budget ($12.3$ hours of
+compute) - and the certified norm bound reached only $2$: we can only
+certify the absence of a degree-30 relation with coefficients~$\le 2$,
+a completely uninteresting bound.  This is the same large-basis
+dilution problem affecting the degree-25 and bivariate degree-6 tests
+(Remarks~\ref{res:deg25-revised} and~\ref{res:biv6-withdrawn}), here
+at its worst since the $31$-element basis is the largest in this
+paper.  We withdraw this claim.
 \end{result}
 
 \noindent For context: $\zeta(2)/\pi^2=1/6$ is rational (degree~0).
-If $\zeta(3)/\pi^3$ were algebraic of any degree, it would represent a
-deep structural connection between $\zeta(3)$ and~$\pi$.  We exclude
-this up to degree~30.
+Whether $\zeta(3)/\pi^3$ is algebraic of any degree remains open; the
+tests in this paper only meaningfully constrain it at
+degree~$\le 10$ and degree~$\le 15$ (Section~\ref{sec:algebraicity}),
+not degree~$\le 30$ as originally claimed.
 
 
 \subsection{Complete test catalogue}\label{sec:catalogue}
@@ -290,7 +303,7 @@ recovered coefficient vector.}\label{tab:all-tests}\\
  9 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,10\}$ & 11 & 8000 & $10^{12}$ & No relation \\
 10 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,15\}$ & 16 & 10000 & $10^{9}$ & No relation \\
 11 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,25\}$ & 26 & 50000 & $17$ (inconclusive) & No relation, weak certificate \\
-12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 4500 & $10^{100}$ & No relation \\
+12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 50000 & $2$ (withdrawn) & No relation, near-worthless \\
 13 & $\{\zeta(3)^i\pi^j:i+j\le 3\}$ & 10 & 5000 & $10^{12}$ & No relation \\
 14 & $\{\zeta(3)^i\pi^j:i+j\le 4\}$ & 15 & 5000 & $10^{8}$ & No relation \\
 15 & $\{\zeta(3)^i\pi^j:i+j\le 6\}$ & 28 & 50000 & $0$ (withdrawn) & No certificate \\
@@ -378,17 +391,23 @@ $0.19$ for the $3$-element main-test basis).  Reaching a bound like
 $10^8$ at this rate would require on the order of $10^5$ iterations -
 roughly $12$ days of compute at the same per-iteration cost - which we
 consider impractical for this paper.  We report this test as
-\emph{inconclusive} rather than as a meaningful exclusion result.  The
-degree~$\le 30$ claim (height~$\le 10^{100}$, $4{,}500$ digits) has
-not yet been independently re-verified; given this finding for the
-closely related degree-25 test, it should be treated with the same
-caution pending confirmation.  The degree~$\le 10$ and degree~$\le 15$
-tests above ($11$- and $16$-element bases) also have not been
-individually re-verified against the same failure mode, though their
-more modest bounds and smaller bases make them less likely to be
-affected than the $26$-plus-element tests.  A compiled LLL
-implementation such as \texttt{fpylll} may scale better than mpmath's
-fixed-point PSLQ on these larger bases; we leave this to future work.
+\emph{inconclusive} rather than as a meaningful exclusion result.
+
+The degree~$\le 30$ claim (height~$\le 10^{100}$, $4{,}500$ digits) -
+the original manuscript's second headline result - fares no better:
+we re-ran it at $50{,}000$-digit precision with a full
+$3{,}000$-iteration budget ($12.3$ hours of compute), and the
+certified norm bound reached only $2$.  This $31$-element basis is the
+largest in the paper and shows the worst dilution of the three
+affected tests.  We \textbf{withdraw} this claim entirely.
+
+The degree~$\le 10$ and degree~$\le 15$ tests (Result~\ref{res:alg-ratio};
+$11$- and $16$-element bases) have not been individually re-verified
+against the same failure mode, though their more modest bounds and
+smaller bases make them less likely to be affected than the
+$26$-plus-element tests.  A compiled LLL implementation such as
+\texttt{fpylll} may scale better than mpmath's fixed-point PSLQ on
+these larger bases; we leave this to future work.
 \end{remark}
 
 
@@ -663,7 +682,8 @@ Nesterenko 1996: $\{\pi,e^\pi,\Gamma(1/4)\}$ alg.\ indep.\
   \cite{Nesterenko1996}
   & $\zeta(3)$ independent from this triple ($10^{12}$) \\
 Bailey--Borwein 2005: experimental methods \cite{BaileyBorwein2005}
-  & Linear bound $10^{18695}$; height bound $10^{100}$ at degree~30 \\
+  & Linear bound $10^{18695}$ (degree-30 height bound withdrawn - see
+  Remark~\ref{res:deg25-revised}) \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -684,35 +704,41 @@ low-complexity relations.
 %% ====================================================================
 
 No algebraic relation between $\zeta(3)$ and~$\pi$ was found within
-the tested bounds.  Across 32 of 34 independent tests, at precisions
-up to $20{,}000$ digits (extended to $40{,}000$ digits for
-Result~\ref{res:A-extended}), every PSLQ computation returned a
-certified null result.  Two tests involving large bases ($26$+
-elements) do not: the degree-25 algebraicity test is inconclusive
+the bounds we were able to actually verify.  Across 31 of 34
+independent tests, at precisions up to $20{,}000$ digits (extended to
+$40{,}000$ digits for Result~\ref{res:A-extended}), every PSLQ
+computation returned a certified null result.  Three tests involving
+large bases ($26$+ elements) do not: the degree-25 and degree-30
+algebraicity tests are withdrawn or inconclusive
 (Remark~\ref{res:deg25-revised}), and the bivariate degree-6
 independence test is withdrawn entirely, having produced no
-certificate at all (Remark~\ref{res:biv6-withdrawn}).  The degree-30
-algebraicity claim is unverified and likely subject to the same
-problem, pending its own re-check.
+certificate at all (Remark~\ref{res:biv6-withdrawn}).  Notably, the
+degree-30 result was one of this paper's original two headline claims
+and does not survive re-verification.
 
-The two principal exclusions are:
+The one remaining principal exclusion is:
 \begin{itemize}
   \item $\zeta(3)\ne(a/b)\,\pi^2+c/d$ with coefficients up to
-    $10^{18695}$;
-  \item $\zeta(3)/\pi^3$ is not algebraic of degree~$\le 30$ with
-    height~$\le 10^{100}$.
+    $10^{18695}$.
 \end{itemize}
-These bounds far exceed any known identity in zeta function theory.
+This bound far exceeds any known identity in zeta function theory.
 
 A formal proof of algebraic independence requires theoretical methods
-beyond computation.  However, our results establish that if any
-relation exists, it lives in a regime (degree~$>30$,
-coefficients~$>10^{18695}$) that has no precedent in number theory.
+beyond computation.  Our results establish that if a linear relation
+$a\,\zeta(3)+b\,\pi^2+c=0$ exists, it must have coefficients exceeding
+$10^{18695}$ - a regime with no precedent in number theory.  We can no
+longer make a comparably strong claim about the \emph{degree} of a
+possible relation between $\zeta(3)$ and~$\pi$: the original
+degree~$\le 30$ exclusion is withdrawn, and the tests that do survive
+re-verification (Section~\ref{sec:algebraicity}) only meaningfully
+constrain degree~$\le 15$.
 
 \medskip
-\noindent\textbf{Any algebraic relation between $\zeta(3)$ and~$\pi$,
-if it exists, must involve either coefficients larger
-than~$10^{18695}$ or degree higher than~$30$.}
+\noindent\textbf{Any relation $a\,\zeta(3)+b\,\pi^2+c=0$ between
+$\zeta(3)$ and~$\pi$, if it exists, must involve coefficients larger
+than~$10^{18695}$.  We make no comparably strong claim about
+higher-degree algebraic relations - see Remark~\ref{res:deg25-revised}
+for what was withdrawn and why.}
 
 
 %% ====================================================================
@@ -789,7 +815,7 @@ and bivariate tests.}
  9 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,10\}$ & 11 & 8000 & $10^{12}$ & 12.6\,s & No relation \\
 10 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,15\}$ & 16 & 10000 & $10^{9}$ & 34.8\,s & No relation \\
 11 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,25\}$ & 26 & 50000 & $17$ (inconcl.) & 31303\,s & No relation, weak \\
-12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 4500 & $10^{100}$ & 29.4\,s & No relation \\
+12 & $\{(\zeta(3)/\pi^3)^k:k=0,\ldots,30\}$ & 31 & 50000 & $2$ (withd.) & 44164\,s & No relation, worthless \\
 13 & $\{\zeta(3)^i\pi^j:i{+}j\le 3\}$ & 10 & 5000 & $10^{12}$ & 4.8\,s & No relation \\
 14 & $\{\zeta(3)^i\pi^j:i{+}j\le 4\}$ & 15 & 5000 & $10^{8}$ & 11.0\,s & No relation \\
 15 & $\{\zeta(3)^i\pi^j:i{+}j\le 6\}$ & 28 & 50000 & $0$ (withd.) & 36740\,s & No certificate \\
