@@ -1,0 +1,50 @@
+# Re-derives every headline certificate on a clean machine.
+#   lll_tests.py        - all LLL headline bounds, asserted against README values
+#   lll_new_constants.py, lll_zagier_check.py - remaining fast LLL suites
+#   pari_mzv_check.py   - MZV evaluators vs PARI zetamult (independent referee)
+#   run_tests.py        - PSLQ suite; run_pslq raises on any uncertified null
+# fpylll needs the fplll C++ library, which is simplest to get from conda-forge.
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: zeta3
+          create-args: >-
+            python=3.12
+            fpylll
+            cysignals
+            gmpy2
+            python-flint
+            cypari2
+            mpmath
+          cache-environment: true
+      - name: Versions
+        shell: bash -l {0}
+        run: python -c "import sys, mpmath, fpylll, flint, gmpy2, cypari2; print(sys.version); print('mpmath', mpmath.__version__, 'fpylll', fpylll.__version__, 'python-flint', flint.__version__, 'gmpy2', gmpy2.version())"
+      - name: LLL headline suite (asserts README bounds)
+        shell: bash -l {0}
+        run: python lll_tests.py
+      - name: LLL new-constant families
+        shell: bash -l {0}
+        run: python lll_new_constants.py
+      - name: MZV evaluators vs PARI (200 digits)
+        shell: bash -l {0}
+        run: python pari_mzv_check.py 200
+      - name: Zagier check through weight 10
+        shell: bash -l {0}
+        run: python lll_zagier_check.py
+      - name: PSLQ suite (every null result must certify or the run fails)
+        shell: bash -l {0}
+        run: python run_tests.py

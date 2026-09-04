@@ -58,7 +58,10 @@ python lll_extended.py      # degree-100/degree-12 push + 5 new constant familie
 python lll_new_constants.py # Catalan, zeta(5)/zeta(7), and gamma tests, ~71s
 python lll_zagier_check.py  # Zagier check incl. weight 8-10 with computed MZVs, ~7 min
 python lll_weight11.py      # weight-11 test with depth-3 zeta(5,3,3), ~35-40 min
+python pari_mzv_check.py    # MZV evaluators vs PARI zetamult, independent referee, ~2 min
 ```
+
+Every script exits non-zero if a certificate is not established: `run_tests.py` raises on any PSLQ null result whose norm bound did not reach `maxcoeff` (the §2.1c pitfall is now enforced on every test, not just the main one), and `lll_tests.py` asserts each headline bound against the values in this README. The same checks run on every push via [GitHub Actions](.github/workflows/verify.yml).
 
 The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound in under 30 seconds. The PSLQ suite (~15 minutes, dominated by the main test's 10700 iterations) provides the independent cross-validation. The extended sweep ([`lll_extended.py`](lll_extended.py), ~11 min) pushes the degree-30/degree-6 tests further and searches new constant families (Li4(1/2), more Li3 points, new L-values). [`lll_new_constants.py`](lll_new_constants.py) (~71s) extends the same algebraicity/bivariate method to Catalan's constant, zeta(5)/zeta(7), and gamma. [`lll_zagier_check.py`](lll_zagier_check.py) (~7 min) verifies the conjectured Zagier bases through weight 10, computing the depth-2 generators zeta(6,2) and zeta(8,2). The extended PSLQ verification (40000 digits, 100000 iterations, ~2.9 hours) is documented separately in [`paper.md`](paper.md) and is not part of the default suite.
 
@@ -75,6 +78,7 @@ The LLL suite ([`lll_tests.py`](lll_tests.py)) reproduces every headline bound i
 ├── lll_new_constants.py Catalan, zeta(5)/zeta(7), and gamma tests, ~71s
 ├── lll_zagier_check.py Zagier check through weight 10 (computes zeta(6,2), zeta(8,2)), ~7 min
 ├── lll_weight11.py     Weight-11 test with depth-3 zeta(5,3,3) + theorem control, ~35-40 min
+├── pari_mzv_check.py   Cross-checks zeta(6,2), zeta(8,2), zeta(5,3,3), zeta(7,2,2) against PARI zetamult
 ├── run_tests.py        PSLQ test suite (34 of 37 tests; 3 large-basis tests are LLL-only - see correction history above)
 ├── generate_figures.py Optional figure generation (requires matplotlib)
 └── figures/            Generated figures for the paper
@@ -86,7 +90,7 @@ Two independent methods:
 
 **PSLQ** ([Ferguson-Bailey](https://www.cecm.sfu.ca/organics/papers/bailey/paper/html/node3.html)) takes real numbers computed to D digits and either finds an integer relation or **certifies** none exists with coefficients below a bound M, via its internal norm bound. Caveat discovered during this project: mpmath's implementation defaults to 100 iterations, and the norm bound only grows ~0.19 digits/iteration (3-element basis) - far less for large bases - so large `maxcoeff` values require explicitly requesting enough iterations, and 26+ element bases are impractical for it entirely.
 
-**LLL** (via [fpylll](https://github.com/fplll/fpylll)) reduces the lattice [I | 10^S·x] whose short vectors correspond to integer relations. fplll's guarantee of LLL-reducedness plus the proven approximation factor yields exclusion certificates directly from the shortest reduced vector - and it handles 30+ element bases in seconds.
+**LLL** (via [fpylll](https://github.com/fplll/fpylll)) reduces the lattice [I | 10^S·x] whose short vectors correspond to integer relations. fplll's guarantee of LLL-reducedness plus the proven approximation factor yields exclusion certificates directly from the shortest reduced vector - and it handles 30+ element bases in seconds. A second certificate that needs no reducedness guarantee at all is computed alongside it: for any lattice basis, λ₁ ≥ minᵢ‖bᵢ*‖, and the Gram-Schmidt norms are exact ratios of integer Gram determinants (FLINT via python-flint). It is also tighter, since it drops the 2^((n-1)/2) factor - about 13 orders of magnitude at degree 100.
 
 ## The Paper
 

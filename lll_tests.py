@@ -30,6 +30,22 @@ bound. Note this bounds the Euclidean norm ||a||_2; the corresponding
 bound on max|a_i| is smaller by at most sqrt(n) (under one order of
 magnitude for every basis here).
 
+SECOND, GUARANTEE-FREE CERTIFICATE (exact Gram-Schmidt)
+-------------------------------------------------------
+The bound above rests on fplll's promise that its output is LLL-reduced
+(documented for the default wrapper: (2*delta-1, 2*eta-1/2)-reduced).
+A second certificate needs no such promise. For ANY basis b_1..b_n of a
+lattice, lambda_1 >= min_i ||b_i*|| where b_i* are the Gram-Schmidt
+vectors, and ||b_i*||^2 = det(G_i) / det(G_{i-1}) for the leading
+principal minors G_i of the Gram matrix B B^T. Those determinants are
+exact integers (computed with FLINT via python-flint), so
+
+    ||a||_2  >=  min_i ||b_i*|| / sqrt(1 + n/4)
+
+holds regardless of how the basis was produced. It is also tighter (no
+2^((n-1)/2) loss): degree 100 improves from 10^183 to ~10^196. Both
+bounds are printed; the exact-GSO one is the headline.
+
 SPURIOUS-VECTOR CAUTION
 -----------------------
 When no relation exists, LLL still returns balanced vectors with all
@@ -40,7 +56,7 @@ residual is zero to the full precision of the inputs (bounded by
 |last|/N >> 10^-D. We therefore verify every candidate at input
 precision D, which must exceed S by a margin (we use 1000 digits).
 
-Requirements: pip install mpmath gmpy2 fpylll cysignals
+Requirements: pip install mpmath gmpy2 fpylll cysignals python-flint
 Usage: python lll_tests.py           (~2 minutes on Apple M3)
 """
 
@@ -50,7 +66,33 @@ import math
 import time
 
 from fpylll import IntegerMatrix, LLL
-from mpmath import mp, mpf, pi, zeta, polylog, ln, nstr
+from flint import fmpz_mat
+from mpmath import mp, mpf, pi, zeta, polylog, ln, nstr, log10 as mp_log10
+
+
+def _log10_int(q):
+    """log10 of a (possibly huge) positive Python int, as a float."""
+    return float(mp_log10(mpf(q)))
+
+
+def gso_lower_bound_log10(rows):
+    """log10 of min_i ||b_i*|| for the integer basis `rows` (list of equal-
+    length integer lists), via exact Gram minors. Lower-bounds lambda_1 of
+    the lattice spanned by the rows, with NO reducedness assumption.
+    Returns None if the rows are linearly dependent (a zero GS vector)."""
+    n = len(rows)
+    B = fmpz_mat(rows)
+    G = B * B.transpose()
+    prev = 1
+    best = None
+    for i in range(1, n + 1):
+        d = int(fmpz_mat([[G[r, c] for c in range(i)] for r in range(i)]).det())
+        if d <= 0:
+            return None
+        val = 0.5 * (_log10_int(d) - _log10_int(prev))
+        best = val if best is None else min(best, val)
+        prev = d
+    return best
 
 
 def lll_relation(basis_vals, scale_digits):
@@ -95,7 +137,19 @@ def lll_relation(basis_vals, scale_digits):
     min_norm_sq = norms[0][0]
 
     slack_log10 = ((n - 1) / 2) * math.log10(2) + 0.5 * math.log10(1 + n / 4)
-    exclusion_log10 = (0.5 * math.log10(min_norm_sq) if min_norm_sq > 0 else 0.0) - slack_log10
+    exclusion_log10 = (0.5 * _log10_int(min_norm_sq) if min_norm_sq > 0 else 0.0) - slack_log10
+
+    # Second certificate: exact Gram-Schmidt lower bound on lambda_1,
+    # independent of any LLL-reducedness guarantee (see module docstring).
+    t1 = time.time()
+    rows = [[int(B[i, j]) for j in range(n + 1)] for i in range(n)]
+    gso_log10 = gso_lower_bound_log10(rows)
+    gso_exclusion_log10 = None
+    if gso_log10 is not None:
+        gso_exclusion_log10 = gso_log10 - 0.5 * math.log10(1 + n / 4)
+        # Sanity: the GS bound can never exceed the shortest reduced row.
+        assert gso_log10 <= 0.5 * _log10_int(min_norm_sq) + 1e-9
+    gso_elapsed = time.time() - t1
 
     relation = None
     residual = None
@@ -116,26 +170,53 @@ def lll_relation(basis_vals, scale_digits):
         "relation": relation,
         "residual": residual,
         "exclusion_log10": exclusion_log10,
+        "gso_exclusion_log10": gso_exclusion_log10,
+        "gso_elapsed": gso_elapsed,
         "elapsed": elapsed,
         "n": n,
         "scale_digits": scale_digits,
     }
 
 
-def report(label, r, claimed=None):
+# Minimum exclusion bounds (log10 of ||a||_2, LLL-reducedness certificate)
+# that this suite has established and the README/paper state. The run
+# fails if any test comes in below its stated bound, so a regression in
+# the arithmetic, the lattice construction, or the LLL engine cannot pass
+# silently. A different fplll version may reduce to a slightly different
+# basis, hence the 2-digit tolerance.
+EXPECTED_MIN_LOG10 = {}
+BOUND_TOLERANCE = 2.0
+_shortfalls = []
+
+
+def report(label, r, claimed=None, expect=None):
+    if expect is not None and r["relation"] is None:
+        EXPECTED_MIN_LOG10[label] = expect
+        if r["exclusion_log10"] < expect - BOUND_TOLERANCE:
+            _shortfalls.append((label, r["exclusion_log10"], expect))
     if r["relation"] is not None:
         print(f"  {label}: FOUND relation {r['relation']}")
         print(f"      residual: {nstr(abs(r['residual']), 5)}  ({r['elapsed']:.2f}s)")
     else:
         extra = f"  [prior claim: {claimed}]" if claimed else ""
-        print(f"  {label}: no relation; certified exclusion ||a|| >= 10^{r['exclusion_log10']:.1f}"
-              f"  ({r['elapsed']:.2f}s){extra}")
+        g = r.get("gso_exclusion_log10")
+        gso = (f"; exact-GSO certificate ||a|| >= 10^{g:.1f} (+{r['gso_elapsed']:.1f}s)"
+               if g is not None else "; exact-GSO certificate unavailable (dependent rows)")
+        print(f"  {label}: no relation; LLL-reducedness certificate ||a|| >= 10^{r['exclusion_log10']:.1f}"
+              f"  ({r['elapsed']:.2f}s){gso}{extra}")
 
 
 def main():
     total_t0 = time.time()
+    import platform
+    import fpylll
+    import flint
+    import mpmath
     print("LLL (fpylll) integer relation test suite")
     print("=" * 64)
+    print(f"Python {platform.python_version()} | mpmath {mpmath.__version__} | "
+          f"fpylll {fpylll.__version__} | python-flint {flint.__version__} | "
+          f"{platform.machine()} {platform.system()}")
 
     # ---- Validation: known identities must be found -------------------
     print("\nValidation (known identities):")
@@ -162,33 +243,39 @@ def main():
     pi2 = pi ** 2
     print(f"  (constants at 61000 digits: {time.time()-t0:.1f}s)")
     r = lll_relation([z3, pi2, mpf(1)], 60000)
-    report("a*zeta(3) + b*pi^2 + c = 0", r, claimed="PSLQ certified 10^18695 in 2.9h")
+    report("a*zeta(3) + b*pi^2 + c = 0", r, claimed="PSLQ certified 10^18695 in 2.9h", expect=19999)
 
     # ---- Algebraicity of zeta(3)/pi^3 ---------------------------------
     print("\nAlgebraicity of zeta(3)/pi^3 (degrees 10/15 verify PSLQ; 25/30 supersede withdrawn claims):")
     mp.dps = 21000
     z3 = zeta(3)
     ratio = z3 / pi ** 3
-    for deg, claimed in [(10, "PSLQ: 10^12"), (15, "PSLQ: 10^9"),
-                         (25, "withdrawn (was 10^200; real PSLQ bound 17)"),
-                         (30, "withdrawn (was 10^100; real PSLQ bound 2)")]:
+    for deg, claimed, expect in [(10, "PSLQ: 10^12", 1816), (15, "PSLQ: 10^9", 1247),
+                                 (25, "withdrawn (was 10^200; real PSLQ bound 17)", 765),
+                                 (30, "withdrawn (was 10^100; real PSLQ bound 2)", 640)]:
         basis = [ratio ** k for k in range(deg + 1)]
         r = lll_relation(basis, 20000)
-        report(f"degree <= {deg} (n={deg+1})", r, claimed=claimed)
+        report(f"degree <= {deg} (n={deg+1})", r, claimed=claimed, expect=expect)
 
     # ---- Bivariate polynomial independence ----------------------------
     print("\nBivariate zeta(3)^i * pi^j independence:")
-    for d, claimed in [(3, "PSLQ: 10^12"), (4, "PSLQ: 10^8"),
-                       (6, "withdrawn (was 10^50; real PSLQ bound 0)")]:
+    for d, claimed, expect in [(3, "PSLQ: 10^12", 1998), (4, "PSLQ: 10^8", 1331),
+                               (6, "withdrawn (was 10^50; real PSLQ bound 0)", 710)]:
         basis = []
         for total in range(d + 1):
             for i in range(total + 1):
                 basis.append(z3 ** i * pi ** (total - i))
         r = lll_relation(basis, 20000)
-        report(f"total degree <= {d} (n={len(basis)})", r, claimed=claimed)
+        report(f"total degree <= {d} (n={len(basis)})", r, claimed=claimed, expect=expect)
 
     print("\n" + "=" * 64)
     print(f"Total: {time.time()-total_t0:.1f}s")
+    if _shortfalls:
+        print("\nFAIL: certified bounds below the stated minimums:")
+        for label, got, exp in _shortfalls:
+            print(f"  {label}: got 10^{got:.1f}, expected >= 10^{exp}")
+        sys.exit(1)
+    print(f"All {len(EXPECTED_MIN_LOG10)} stated exclusion bounds re-established.")
 
 
 if __name__ == "__main__":

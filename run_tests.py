@@ -39,22 +39,69 @@ from mpmath import gamma as gammafunc
 import math
 import time
 import sys
+import io
+import re
+import contextlib
+
+# mpmath's verbose PSLQ prints its tolerance as a decimal string; above
+# ~4300 digits Python refuses the int->str conversion unless this is lifted.
+sys.set_int_max_str_digits(0)
+
+# Iteration budget for every PSLQ test that does not pass its own. PSLQ stops
+# as soon as its norm bound reaches maxcoeff, so a generous budget costs
+# nothing on a certifiable test and only matters when a bound is NOT
+# reachable - in which case run_pslq raises instead of reporting a
+# certificate (see below). Measured requirements on this suite: 250-2700
+# iterations for the 5-11 element bases; the largest bases need more.
+DEFAULT_MAXSTEPS = 20000
+
+# label -> integer norm bound PSLQ actually certified (filled by run_pslq)
+certified_norms = {}
 
 
-def run_pslq(label, basis_vals, maxcoeff, description="", maxsteps=100):
+def _parse_pslq_termination(verbose_output):
+    """Return (norm_bound, steps) from mpmath's verbose PSLQ output.
+
+    mpmath prints 'CANCELLING after step K/N.' followed by 'Could not find
+    an integer relation. Norm bound: B' on BOTH exit paths - norm bound
+    reached maxcoeff (a certificate) and iteration budget exhausted (not a
+    certificate). The return value alone cannot tell them apart; the norm
+    bound can. norm_bound is None if not printed (relation found), or
+    math.inf if mpmath printed 'inf'.
+    """
+    m = re.search(r'Norm bound: (\S+)', verbose_output)
+    k = re.search(r'CANCELLING after step (\d+)/(\d+)', verbose_output)
+    steps = int(k.group(1)) if k else None
+    if not m:
+        return None, steps
+    tok = m.group(1)
+    if tok == 'inf':
+        return math.inf, steps
+    return int(tok), steps
+
+
+def run_pslq(label, basis_vals, maxcoeff, description="", maxsteps=None):
     """
     Run PSLQ on a basis vector and report results.
 
     Given basis [x₁, x₂, ..., xₙ], PSLQ searches for integers [a₁, ..., aₙ]
     with a₁x₁ + a₂x₂ + ... + aₙxₙ = 0 and max|aᵢ| < maxcoeff.
 
-    Returns None if no relation exists (certified), or the coefficient vector.
-    The tolerance is set to 10^(-(dps-200)) to leave margin for rounding.
-    maxsteps defaults to mpmath's own default (100); tests that need a much
-    larger maxcoeff must pass a correspondingly larger maxsteps, since a
-    bigger maxcoeff alone does not make PSLQ search any further - see
-    Section 9 for the certification check that catches this mismatch.
+    Returns (rel, elapsed): rel is the coefficient vector if a relation was
+    found, else None - and None is only ever returned when PSLQ's own norm
+    bound provably exceeded maxcoeff. The tolerance is set to
+    10^(-(dps-200)) to leave margin for rounding.
+
+    CERTIFICATION CHECK. mpmath's pslq() returns None both when it certifies
+    non-existence (norm bound ≥ maxcoeff) and when it merely runs out of
+    iterations (maxsteps, default 100) - the paper's §2.1c pitfall. This
+    wrapper captures the verbose termination state on EVERY call and raises
+    RuntimeError if the norm bound fell short, so an uncertified null can
+    never be printed as a certificate. The certified norm is recorded in
+    certified_norms[label] for the summary.
     """
+    if maxsteps is None:
+        maxsteps = DEFAULT_MAXSTEPS
     tol = mpf(10) ** (-(mp.dps - 200))
     # maxcoeff can be astronomically large (e.g. 10**2000); float(maxcoeff)
     # overflows well before that, so format its order of magnitude instead
@@ -68,8 +115,11 @@ def run_pslq(label, basis_vals, maxcoeff, description="", maxsteps=100):
     sys.stdout.flush()
 
     t0 = time.time()
-    rel = pslq(basis_vals, maxcoeff=maxcoeff, tol=tol, maxsteps=maxsteps)
+    captured = io.StringIO()
+    with contextlib.redirect_stdout(captured):
+        rel = pslq(basis_vals, maxcoeff=maxcoeff, tol=tol, maxsteps=maxsteps, verbose=True)
     elapsed = time.time() - t0
+    norm, steps = _parse_pslq_termination(captured.getvalue())
 
     if rel:
         residual = sum(mpf(c) * v for c, v in zip(rel, basis_vals))
@@ -77,7 +127,18 @@ def run_pslq(label, basis_vals, maxcoeff, description="", maxsteps=100):
         print(f"       📐 Coefficients: {rel}")
         print(f"       📏 Residual: {nstr(abs(residual), 5)}")
     else:
-        print(f"       ❌ No relation exists (certified in {elapsed:.3f}s)")
+        if norm is None or norm < maxcoeff:
+            norm_str = "none" if norm is None else f"~10^{len(str(norm)) - 1}"
+            print(f"       🛑 NOT CERTIFIED: PSLQ stopped after {steps} of {maxsteps} steps "
+                  f"with norm bound {norm_str} < maxcoeff {bound_str}")
+            raise RuntimeError(
+                f"PSLQ null result for '{label}' is NOT a certificate: norm bound "
+                f"{norm_str} < maxcoeff {bound_str} after {steps}/{maxsteps} steps. "
+                f"Raise maxsteps (or lower maxcoeff); do not report this as a bound.")
+        norm_str = "inf" if norm == math.inf else f"10^{len(str(norm)) - 1}"
+        certified_norms[label] = norm
+        print(f"       ❌ No relation exists (certified in {elapsed:.3f}s: "
+              f"norm bound {norm_str} ≥ {bound_str} after {steps} steps)")
 
     print()
     return rel, elapsed
